@@ -97,7 +97,7 @@ function clone_project(pkg::AbstractString, devdir::AbstractString; branch::Abst
       # we create the main repo as well as the fork as upstream
       repo = LibGit2.clone(pkg_url(pkg; full=true), devdir)
       add_remote(repo; fork=fork)
-      create_tracking_branch(repo, fork, branch)
+      create_tracking_branch(repo, branch; remote=fork)
    else
       repo = LibGit2.clone(url, devdir, branch=branch)
    end
