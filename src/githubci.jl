@@ -123,5 +123,5 @@ end
 
 # this allows setting a github output variable 'matrix'
 # which we can then use as input for the matrix-strategy
-github_json(github_matrix::Dict{String,String}) = 
+github_json(github_matrix::Dict{String,Any}) =
    "::set-output name=matrix::" * JSON.json(github_matrix)
