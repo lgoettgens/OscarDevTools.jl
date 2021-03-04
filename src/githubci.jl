@@ -70,9 +70,13 @@ function ci_matrix(meta::Dict{String,Any}; pr=0, fork=nothing, active_repo=nothi
       @info "fetching $active_pkg PR #$pr."
       ghpr = GitHub.pull_request(github_repo(active_pkg), pr; auth=gh_auth)
       # check if this comes from a fork
-      if ghpr.head.repo.full_name != pkg_url(active_pkg; full=false)
-         fork = ghpr.head.user.login
+      if ghpr.head.ref != "master"
+         if ghpr.head.repo.full_name != pkg_url(active_pkg; full=false)
+            fork = ghpr.head.user.login
+         end
          pr_branch = ghpr.head.ref
+      else
+         @warn "PR branch name 'master' cannot be used for branch autodetection"
       end
       # TODO: we might even look into pr.body and parse the branch from there?
       # e.g.: look for such a line
@@ -83,12 +87,12 @@ function ci_matrix(meta::Dict{String,Any}; pr=0, fork=nothing, active_repo=nothi
    for (pkg,branches) in meta["pkgs"]
       # ignore currently active repo
       pkg == active_pkg && continue
-      if !isempty(pr_branch) && pr_branch != "master"
-         (url, branch, fork) = find_branch(pkg, pr_branch; fork=fork)
-         push!(branches,
-               isnothing(fork) ? 
-                  branch : 
-                  "$url#$branch")
+      if !isempty(pr_branch)
+         (url, branch, pkg_fork) = find_branch(pkg, pr_branch; fork=fork)
+         # don't (re-)add 'master' (even from a fork)
+         if branch != "master"
+            push!(branches, isnothing(pkg_fork) ?  branch : "$url#$branch")
+         end
       end
       if !isempty(branches)
          matrix[pkg] = [Dict("name" => "$pkg#$branch", "branch" => branch)
