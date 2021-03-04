@@ -6,7 +6,7 @@ import TOML
 import Pkg
 import LibGit2
 
-export oscar_develop
+export oscar_develop, oscar_update, oscar_branch, oscar_add_remotes
 
 include("helpers.jl")
 include("githubci.jl")

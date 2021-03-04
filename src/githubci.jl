@@ -11,8 +11,20 @@ function github_auth(;token::AbstractString="")
    end
 end
 
-github_repo(pkg::AbstractString; fork=nothing) = 
-      GitHub.repo(pkg_url(pkg; full=false, fork=fork); auth=gh_auth)
+
+function github_repo(pkg::AbstractString; fork=nothing)
+   isnothing(gh_auth) && github_auth()
+   return GitHub.repo(pkg_url(pkg; full=false, fork=fork); auth=gh_auth)
+end
+
+function github_repo_exists(name::AbstractString, org::AbstractString)
+   try
+      github_repo(name; fork=org)
+      return true
+   catch
+      return false
+   end
+end
 
 parse_meta(file::AbstractString) = TOML.parsefile(file)
 
