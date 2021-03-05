@@ -181,6 +181,10 @@ oscar_add_remotes(fork::AbstractString; dir=default_dev_dir) =
    oscar_add_remotes(pkg_names(dir), fork; dir=dir)
 
 function oscar_branch(pkgs::Array{String}, branch::AbstractString; dir=default_dev_dir, start="origin/master")
+   # if path is not there, develop it first
+   if !ispath(dir)
+     oscar_develop(pkgs; dir=dir)
+   end
    for pkgdir in joinpath.(dir, pkgs)
       if isdir(joinpath(pkgdir, ".git"))
          create_branch(pkgdir, branch; start=start)
