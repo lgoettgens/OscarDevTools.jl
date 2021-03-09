@@ -23,3 +23,21 @@ end
 function pkg_names(dir::AbstractString=default_dev_dir)
    return filter(x -> (isdir(joinpath(dir,x)) && x != "project"), readdir(dir))
 end
+
+function pkg_parsebranch(pkg::AbstractString, branch::AbstractString)
+   fork = nothing
+   if startswith(branch, "https://")
+      urlmatch = match(r"https://github\.com/([-_\w]+)/[-_\w]+\.jl#(.*)", branch)
+      isnothing(urlmatch) &&
+         @error "could not parse org and branch from $branch"
+      if urlmatch[1] != pkg_org(pkg)
+         fork = urlmatch[1]
+      end
+      branch = urlmatch[2]
+   end
+   if isnothing(fork)
+      return (nothing, branch, "$pkg#$branch")
+   else
+      return (fork, branch, "$pkg@$fork#$branch")
+   end
+end
