@@ -1,3 +1,18 @@
+module OscarCI
+
+import GitHub
+import JSON
+import TOML
+
+using ..Helpers
+
+# these are not reexported from the main module but should be easily
+# accessible for the ci runner by using OscarDevTools.OscarCI
+
+export github_auth, github_repo, github_repo_exists, find_branch,
+       parse_meta, ci_matrix, github_json,
+       parse_job, job_meta_env, job_pkgs, github_env_runtests
+
 global gh_auth = nothing
 
 function github_auth(;token::AbstractString="")
@@ -56,9 +71,9 @@ function find_branch(pkg::AbstractString, branch::AbstractString; fork=nothing)
       catch
          @info "  -- not found in main repo"
       end
+      @warn "  ** branch '$branch' not found, using default 'master' branch"
    end
    # fallback to master branch in default repo
-   @warn "  ** branch $branch not found, using default 'master' branch"
    return (pkg_url(pkg; full=true), "master", nothing)
 end
 
@@ -145,6 +160,11 @@ function ci_matrix(meta::Dict{String,Any}; pr=0, fork=nothing, active_repo=nothi
 end
 
 
+# this allows setting a github output variable 'matrix'
+# which we can then use as input for the matrix-strategy
+github_json(github_matrix::Dict{String,Any}) =
+   "::set-output name=matrix::" * JSON.json(github_matrix)
+
 # extract some data from the matrix context of one job
 
 function job_meta(job_json::AbstractString)
@@ -165,11 +185,6 @@ end
 # keep this for now for older OscarCI.yml files
 parse_job(job_json::AbstractString) = job_pkgs(job_meta(job_json))
 
-# this allows setting a github output variable 'matrix'
-# which we can then use as input for the matrix-strategy
-github_json(github_matrix::Dict{String,Any}) =
-   "::set-output name=matrix::" * JSON.json(github_matrix)
-
 # generate one long julia command that tests all packages with test==true
 # and passes any test_args to Pkg.test
 # the testcommand is then stored as an env variable an run in the next step
@@ -187,6 +202,8 @@ function github_env_runtests(job::Dict; varname::String, filename::String)
       end
    end
    open(filename, "a") do io
-      println(io, "$varname='", join(testcmd), "'")
+      println(io, "$varname=", join(testcmd))
    end
+end
+
 end

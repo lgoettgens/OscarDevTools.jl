@@ -1,3 +1,8 @@
+module Helpers
+
+export default_dev_dir, pkg_org, pkg_from_repo, pkg_url, pkg_giturl,
+       pkg_names, pkg_parsebranch
+
 const orgnames = Dict(
                      "AbstractAlgebra" => "Nemocas",
                      "Hecke" => "thofma",
@@ -40,4 +45,6 @@ function pkg_parsebranch(pkg::AbstractString, branch::AbstractString)
    else
       return (fork, branch, "$pkg@$fork#$branch")
    end
+end
+
 end

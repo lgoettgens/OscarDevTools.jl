@@ -1,15 +1,14 @@
 module OscarDevTools
 
-import GitHub
-import JSON
-import TOML
-import Pkg
-import LibGit2
-
 export oscar_develop, oscar_update, oscar_branch, oscar_add_remotes
 
-include("helpers.jl")
-include("githubci.jl")
-include("devutils.jl")
+include("Helpers.jl")
+include("OscarCI.jl")
+include("DevUtils.jl")
+
+using .DevUtils
+
+# for old CI yml files
+import .OscarCI: parse_meta, ci_matrix, github_json, parse_job
 
 end # module
