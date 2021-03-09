@@ -124,6 +124,53 @@ function pkg_array_to_dict(pkgs::Array{String})
    return pkgdict
 end
 
+"""
+    oscar_develop(pkgs::Array{String}; <keyword arguments>)
+    oscar_develop(pkgs::Dict{String,Any}; <keyword arguments>)
+
+For each of the Oscar packages given in `pkgs`, create a new checkout in `dir`,
+and try to create new tracking branches for _existing_ upstream branches `branch`
+(or fall back to `master`).
+
+_Note:_ To create new branches for a new feature please use [`oscar_branch`](@ref).
+
+If `fork` is given the branch will be looked up in `https://github.com/fork/pkg.jl`
+and a second remote is created automatically; in addition to `origin` which will
+always point to the main repository.
+
+The push-urls are set to `git@github.com:org-name/PackageName.jl` to facilitate
+pushing via ssh (both for `origin` and the optional `fork`).
+
+
+These package checkouts are then added (dev'd) to a new julia project in `dir/project`
+which you can then use by running julia with:
+```
+julia --project=dir/project
+```
+
+# Arguments
+- `pkgs`: list of packages to operate on, please omit the `.jl`.
+- `branch::String="master"`: branch for checkout.
+- `dir="oscar-dev"`: development subdirectory.
+- `fork=nothing`: github organisation/user for branch lookup for all packages.
+- `active_repo=nothing`: used in CI to reuse the existing checkout of that package,
+  corresponding to the github variable `\$GITHUB_REPOSITORY`.
+
+Each package name can optionally contain a branchname and a fork url:
+- `PackageName#somebranch` will checkout `somebranch` from the default upstream.
+- `PackageName#https://github.com/myfork/PackageName.jl#otherbranch` will use the
+  `myfork` user for this package.
+The package name and branch can also be given as dictionary mapping `PackageName.jl`
+to `[forkurl#]branchname`.
+
+# Examples
+```julia-repl
+julia> oscar_develop(["Oscar","Polymake"]; branch="some_feature")
+```
+```julia-repl
+julia> oscar_develop(["Oscar","Singular#more_rings"]; dir="dev_more_rings")
+```
+"""
 function oscar_develop(pkgs::Dict{String,Any}; dir=default_dev_dir, branch::AbstractString="master", fork=nothing, active_repo=nothing)
    mkpath(dir)
    active_pkg = pkg_from_repo(active_repo)
@@ -157,6 +204,16 @@ end
 oscar_develop(pkgs::Array{String}; kwargs...) = 
    oscar_develop(pkg_array_to_dict(pkgs); kwargs...)
 
+"""
+    oscar_update(; <keyword arguments>)
+
+For each Oscar package in `dir` fetch all remotes and do a fast forward merge
+with the currently tracked upstream branch.
+Similiar to doing `git pull --ff-only` in each directory.
+
+# Arguments
+- `dir="oscar-dev"`: development subdirectory.
+"""
 function oscar_update(; dir=default_dev_dir)
    for pkgdir in joinpath.(dir, pkg_names(dir))
       if isdir(joinpath(pkgdir,".git"))
@@ -169,6 +226,20 @@ function oscar_update(; dir=default_dev_dir)
    end
 end
 
+"""
+    oscar_add_remotes(fork::String; <keyword arguments>)
+    oscar_add_remotes(pkgs::Array{String}, fork::String; <keyword arguments>)
+
+For each Oscar package in `pkgs` (or existing in `dir` if `pkgs` is not given)
+add a new git remote for `https://github.com/fork/PackageName.jl`.
+The push-url is set to `git@github.com:fork/PackageName.jl` to facilitate
+pushing via ssh.
+
+# Arguments
+- `pkgs::Array{String}`: list of packages to operate on, please omit the `.jl`.
+- `fork::String`: github organisation/user for new remote
+- `dir="oscar-dev"`: development subdirectory.
+"""
 function oscar_add_remotes(pkgs::Array{String}, fork::AbstractString; dir=default_dev_dir)
    for pkgdir in joinpath.(dir, pkgs)
       if isdir(joinpath(pkgdir, ".git"))
@@ -180,6 +251,26 @@ end
 oscar_add_remotes(fork::AbstractString; dir=default_dev_dir) =
    oscar_add_remotes(pkg_names(dir), fork; dir=dir)
 
+
+"""
+    oscar_branch(branch::AbstractString; <keyword arguments>)
+    oscar_branch(pkgs::Array{String}, branch::AbstractString; <keyword arguments>)
+
+For each of the Oscar packages given in `pkgs` create a new local branch named
+`branch` with start point `start`, in the working copies under the current
+development directory given via `dir`.
+If no `pkgs` array is given it will run on all subdirectories of `dir`.
+
+If the directory `dir` does not exist and `pkgs is given it will checkout all
+`pkgs` first by calling [`oscar_develop`](@ref).
+
+# Arguments
+- `pkgs::Array{String}`: list of packages to operate on, please omit the `.jl`.
+- `branch::String`: new branch name.
+- `dir="oscar-dev"`: development subdirectory.
+- `start="origin/master"`: start point for the branches, use `HEAD` for the current
+                           head in each directory.
+"""
 function oscar_branch(pkgs::Array{String}, branch::AbstractString; dir=default_dev_dir, start="origin/master")
    # if path is not there, develop it first
    if !ispath(dir)
@@ -196,7 +287,5 @@ function oscar_branch(pkgs::Array{String}, branch::AbstractString; dir=default_d
    end
 end
 
-
 oscar_branch(branch::AbstractString; dir=default_dev_dir, start="origin/master") =
    oscar_branch(pkg_names(dir), branch; dir=dir, start=start)
-
