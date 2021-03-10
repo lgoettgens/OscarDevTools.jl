@@ -10,7 +10,12 @@ In addition, it contains GitHub Actions code to run downstream tests, e.g. to ch
 
 The OSCAR development functions are based on a `oscar-dev` directory containing clones for some OSCAR packages and a corresponding julia project directory `oscar-dev/project`.
 
-The most important (exported) functions are the following:
+**Note:** To use such a project (after it has been created with `oscar_develop` or `oscar_branch`) julia must always be started with:
+```
+julia --project=oscar-dev/project
+```
+
+The most important functions are the following:
 
   - `oscar_branch([pkgs,] branchname)`: will create new local branches (`branchname`) for all given (or all already cloned) packages in the current development directory.
   - `oscar_develop(pkgs; branch="master")`: will clone all packages given in `pkgs`, check out a new tracking branch `branch`, and add the directories to the the julia project.
