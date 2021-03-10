@@ -13,14 +13,14 @@ The OSCAR development functions are based on a `oscar-dev` directory containing 
 The most important (exported) functions are the following:
 
   - `oscar_branch([pkgs,] branchname)`: will create new local branches (`branchname`) for all given (or all already cloned) packages in the current development directory.
-  - `oscar_develop(pkgs; branch="master")`: will clone all packages given in `pkgs`, check out a new tracking branch `branch`, and add the directories to the the julia project, .
+  - `oscar_develop(pkgs; branch="master")`: will clone all packages given in `pkgs`, check out a new tracking branch `branch`, and add the directories to the the julia project.
   - `oscar_update()`: will update all current checkouts (similar to running `git pull --ff-only` in each directory).
-  - `oscar_add_remotes(forkname)`: will add a new git remote to all packages to allow pushing branches to a fork (which must be created on github first).
+  - `oscar_add_remotes(forkname)`: will add a new git remote to all packages to allow pushing branches to a fork (which must be created on GitHub first).
 
 All functions support a `dir::String="oscar-dev"` keyword argument to specify the development directory.
 Please see the docstrings for these functions for more details on the possible arguments, e.g. via `?oscar_develop`.
 
-To publish a branch created by these functions please go to the corresponding directory (e.g. `oscar-dev/Oscar`) and run `git push --set-upstream forkname` (or `origin` instead of `forkname` if you want to push to the main repository). Afterwards pushing all branches, you can create pull requests on github and when `OscarCI` is set up (see below) it will run the corresponding tests automatically.
+To publish a branch created by these functions please go to the corresponding directory (e.g. `oscar-dev/Oscar`) and run `git push --set-upstream forkname` (or `origin` instead of `forkname` if you want to push to the main repository). After pushing all branches, you can create pull requests on GitHub and when `OscarCI` is set up (see below) it will run the corresponding tests automatically.
 
 ## OscarCI - GitHub Actions workflow for automated downstream testing
 
