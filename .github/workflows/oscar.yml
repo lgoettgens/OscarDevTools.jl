@@ -1,0 +1,67 @@
+name: OscarCI
+
+on:
+   pull_request:
+     branches:
+       - master
+
+jobs:
+  generatematrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    env:
+      PR_NUMBER: ${{github.event.number}}
+    steps:
+    - uses: actions/checkout@v2.1.0
+    - name: "Set up Julia"
+      uses: julia-actions/setup-julia@v1
+      with:
+        version: '~1.6.0-0'
+    - id: set-matrix
+      # the active_repo here is just to try fetching metadata from some PR
+      run: |
+        julia --project=. -e "using Pkg; Pkg.instantiate();
+                 using OscarDevTools.OscarCI;
+                 ciprefs = parse_meta(\"test/meta/OscarCI.toml\");
+                 cimat = ci_matrix(ciprefs;
+                                   pr=319,
+                                   active_repo=\"oscar-system/Singular.jl\");
+                 @show cimat;
+                 println(github_json(cimat));"
+
+  test-oscar:
+    needs: generatematrix
+    name: ${{ join(matrix.*.name) }} - ${{ matrix.os }}, julia ${{ matrix.julia-version}}
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.julia-version == 'nightly' }}
+    env:
+      PR_NUMBER: ${{github.event.number}}
+    strategy:
+      matrix: ${{fromJSON(needs.generatematrix.outputs.matrix)}}
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v2.1.0
+      - name: "Set up Julia"
+        uses: julia-actions/setup-julia@v1
+        with:
+          version: ${{ matrix.julia-version }}
+      - name: "Set up Oscar-dev configuration"
+        env:
+          MATRIX_CONTEXT: ${{ toJSON(matrix) }}
+        # we can't use active_repo below as we just have the devtools active
+        run: |
+          echo "$MATRIX_CONTEXT"
+          julia --project=. -e "using Pkg; Pkg.instantiate();
+                   using OscarDevTools, OscarDevTools.OscarCI;
+                   meta = job_meta_env(\"MATRIX_CONTEXT\");
+                   oscar_develop(job_pkgs(meta);
+                                 dir=\"oscar-dev\");
+                   github_env_runtests(meta;
+                                       varname=\"oscar_run_tests\",
+                                       filename=\"${GITHUB_ENV}\");"
+      - name: "Run tests"
+        run: |
+          echo '${{ env.oscar_run_tests }}'
+          julia --project=oscar-dev/project/ -e '${{ env.oscar_run_tests }}'
