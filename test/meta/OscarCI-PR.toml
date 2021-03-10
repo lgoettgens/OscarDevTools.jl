@@ -9,12 +9,21 @@ julia-version = [ "~1.6.0-0" ]
 [pkgs]
   [pkgs.Oscar]
   branches = [ "master" ]
+  test = false
+
+  [pkgs.Hecke]
+  branches = [ "release" ]
   test = true
-  testoptions = []
+  testoptions = [ "short" ]
+
+  [pkgs.Polymake]
+  branches = [ "release" ]
+  test = true
 
 [include]
   [include.macos]
   Oscar = "master"
+  Polymake = "master"
   os = "macos-latest"
   julia-version = "~1.6.0-0"
 

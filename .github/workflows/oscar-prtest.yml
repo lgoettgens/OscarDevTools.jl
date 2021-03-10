@@ -1,4 +1,4 @@
-name: OscarCI (simple / legacy toml file)
+name: OscarCI - PR meta
 
 on:
    pull_request:
@@ -19,17 +19,16 @@ jobs:
       with:
         version: '~1.6.0-0'
     - id: set-matrix
-      # the active_repo here is just to try fetching metadata from some old PR
-      # and wont be used for this CI
+      # the active_repo here is just to try fetching metadata from some PR
       run: |
         julia --project=. -e "using Pkg; Pkg.instantiate();
-                 using OscarDevTools;
-                 ciprefs = OscarDevTools.parse_meta(\"test/meta/OscarCI-simple.toml\");
-                 cimat = OscarDevTools.ci_matrix(ciprefs;
-                                   pr=366,
+                 using OscarDevTools.OscarCI;
+                 ciprefs = parse_meta(\"test/meta/OscarCI-PR.toml\");
+                 cimat = ci_matrix(ciprefs;
+                                   pr=319,
                                    active_repo=\"oscar-system/Singular.jl\");
                  @show cimat;
-                 println(OscarDevTools.github_json(cimat));"
+                 println(github_json(cimat));"
 
   test-oscar:
     needs: generatematrix
@@ -55,10 +54,14 @@ jobs:
         run: |
           echo "$MATRIX_CONTEXT"
           julia --project=. -e "using Pkg; Pkg.instantiate();
-                   using OscarDevTools;
-                   pkgs = OscarDevTools.parse_job(ENV[\"MATRIX_CONTEXT\"]);
-                   oscar_develop(pkgs;
-                                 dir=\"oscar-dev\");"
-      - name: "Run Oscar tests"
+                   using OscarDevTools, OscarDevTools.OscarCI;
+                   meta = job_meta_env(\"MATRIX_CONTEXT\");
+                   oscar_develop(job_pkgs(meta);
+                                 dir=\"oscar-dev\");
+                   github_env_runtests(meta;
+                                       varname=\"oscar_run_tests\",
+                                       filename=\"${GITHUB_ENV}\");"
+      - name: "Run tests"
         run: |
-          julia --project=oscar-dev/project/ -e 'using Pkg; Pkg.test("Oscar");'
+          echo '${{ env.oscar_run_tests }}'
+          julia --project=oscar-dev/project/ -e '${{ env.oscar_run_tests }}'
