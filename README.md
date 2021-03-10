@@ -24,7 +24,7 @@ To publish a branch created by these functions please go to the corresponding di
 
 ## OscarCI - GitHub Actions workflow for automated downstream testing
 
-There is a workflow file in `.github/workflows/oscar.yml` that should work in any other repository as well and will run all the tests as specified in the `OscarCI.toml` file which should be placed in the main directory of the repository. (Please do not use the other `oscar-something.yml` files as they are adjusted just for testing in this repository)
+There is a workflow file in [`.github/workflows/oscar.yml`](https://github.com/oscar-system/OscarDevTools.jl/blob/master/.github/workflows/oscar.yml) that should work in any other repository as well and will run all the tests as specified in the [`OscarCI.toml`](https://github.com/oscar-system/OscarDevTools.jl/blob/master/OscarCI.toml) file which should be placed in the main directory of the repository. (Please do not use the other `oscar-something.yml` files as they are adjusted just for testing in this repository)
 
 The general workflow is as follows: 
 1. The `OscarCI.toml` metadata file lists the default test-environment, a list of OSCAR packages with the corresponding branches to use, and an optional list of extra test configurations.
