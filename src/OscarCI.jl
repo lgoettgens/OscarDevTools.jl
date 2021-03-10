@@ -1,3 +1,18 @@
+module OscarCI
+
+import GitHub
+import JSON
+import TOML
+
+using ..Helpers
+
+# these are not reexported from the main module but should be easily
+# accessible for the ci runner by using OscarDevTools.OscarCI
+
+export github_auth, github_repo, github_repo_exists, find_branch,
+       parse_meta, ci_matrix, github_json,
+       parse_job, job_meta_env, job_pkgs, github_env_runtests
+
 global gh_auth = nothing
 
 function github_auth(;token::AbstractString="")
@@ -33,15 +48,8 @@ parse_meta(file::AbstractString) = TOML.parsefile(file)
 function find_branch(pkg::AbstractString, branch::AbstractString; fork=nothing)
    isnothing(gh_auth) && github_auth()
    if startswith(branch, "https://")
-      urlmatch = match(r"https://github\.com/([-\w]+)/\w+\.jl#(.*)", branch)
-      if isnothing(urlmatch)
-         @error "could not parse org and branch from $branch"
-      end
-      if urlmatch[1] == pkg_org(pkg)
-         return find_branch(pkg, urlmatch[2])
-      else
-         return find_branch(pkg, urlmatch[2]; fork=urlmatch[1])
-      end
+      (pkg_fork, pkg_branch, _) = pkg_parsebranch(pkg, branch)
+      return find_branch(pkg, pkg_branch; fork=pkg_fork)
    end
    @info "locating branch '$branch' for '$pkg'" * (isnothing(fork) ? "" : " (in fork '$fork')")
    if !isnothing(fork)
@@ -63,9 +71,9 @@ function find_branch(pkg::AbstractString, branch::AbstractString; fork=nothing)
       catch
          @info "  -- not found in main repo"
       end
+      @warn "  ** branch '$branch' not found, using default 'master' branch"
    end
    # fallback to master branch in default repo
-   @warn "  ** branch $branch not found, using default 'master' branch"
    return (pkg_url(pkg; full=true), "master", nothing)
 end
 
@@ -96,31 +104,54 @@ function ci_matrix(meta::Dict{String,Any}; pr=0, fork=nothing, active_repo=nothi
    end
    
    # for each package lookup branch with the same name in fork and main repo
-   for (pkg,branches) in meta["pkgs"]
+   for (pkg,pkgmeta) in meta["pkgs"]
+      # adjustments for first version of toml files
+      # keep for compat reasons for now
+      if isa(pkgmeta, Array)
+         @info "legacy: mapping meta to branches"
+         meta["pkgs"][pkg] = Dict("branches" => pkgmeta,
+                                  "test" => pkg == "Oscar",
+                                  "testoptions" => [])
+         pkgmeta = meta["pkgs"][pkg]
+      end
+      branches = pkgmeta["branches"]
+      totest = get!(pkgmeta, "test", false)
+      testopts = get!(pkgmeta, "testoptions", [])
+
       # ignore currently active repo
       pkg == active_pkg && continue
       if !isempty(pr_branch)
          (url, branch, pkg_fork) = find_branch(pkg, pr_branch; fork=fork)
-         # don't (re-)add 'master' (even from a fork)
+         # don't (re-)add 'master'
          if branch != "master"
             push!(branches, isnothing(pkg_fork) ?  branch : "$url#$branch")
          end
       end
       if !isempty(branches)
-         matrix[pkg] = [Dict("name" => "$pkg#$branch", "branch" => branch)
+         matrix[pkg] = [Dict("name" => pkg_parsebranch(pkg,branch)[3],
+                             "branch" => branch,
+                             "test" => totest,
+                             "options" => testopts)
                            for branch in branches]
       end
    end
    
    # add includes for custom configurations
    matrix["include"] = []
-   for (_,inc) in meta["include"]
+   for (name,inc) in meta["include"]
       named_include = Dict()
-      for (obj,val) in inc
-         if obj in ("os","julia-version")
-            named_include[obj] = val
+      for (key,val) in inc
+         if key in ("os","julia-version")
+            named_include[key] = val
          else
-            named_include[obj] = Dict("name" => "$obj#$val", "branch" => val)
+            named_include[key] = Dict{String,Any}(
+                                    "name" => "$(pkg_parsebranch(key,val)[3])",
+                                    "branch" => val
+                                 )
+            named_include[key]["test"] = haskey(meta["pkgs"],key) ?
+                                         meta["pkgs"][key]["test"] : false
+            named_include[key]["options"] = haskey(meta["pkgs"],key) ?
+                                            meta["pkgs"][key]["testoptions"] : []
          end
       end
       push!(matrix["include"],named_include)
@@ -128,16 +159,51 @@ function ci_matrix(meta::Dict{String,Any}; pr=0, fork=nothing, active_repo=nothi
    return matrix
 end
 
-function parse_job(job_json::AbstractString)
-   job_dict = JSON.parse(job_json)
-   pkgdict = Dict{String,Any}(pkg => val["branch"] 
-                                  for (pkg,val) in
-                                  filter(p->(!in(first(p), ("os","julia-version"))),
-                                         job_dict))
-   return pkgdict
-end
 
 # this allows setting a github output variable 'matrix'
 # which we can then use as input for the matrix-strategy
 github_json(github_matrix::Dict{String,Any}) =
    "::set-output name=matrix::" * JSON.json(github_matrix)
+
+# extract some data from the matrix context of one job
+
+function job_meta(job_json::AbstractString)
+   return Dict{String,Any}(filter(p->(!in(p.first, ("os","julia-version"))),
+                                  JSON.parse(job_json)))
+end
+
+job_meta_env(var::AbstractString) = job_meta(ENV[var])
+
+job_pkgs(job::Dict) = Dict{String,Any}(pkg => val["branch"] for (pkg,val) in job)
+
+function job_tests(job::Dict)
+   return Dict{String,Any}(k => get(v,"options",[])
+                              for (k,v) in
+                              filter(p->(get(p.second,"test",false) == true), job))
+end
+
+# keep this for now for older OscarCI.yml files
+parse_job(job_json::AbstractString) = job_pkgs(job_meta(job_json))
+
+# generate one long julia command that tests all packages with test==true
+# and passes any test_args to Pkg.test
+# the testcommand is then stored as an env variable an run in the next step
+# (using the gitub actions `>> $GITHUB_ENV style`
+# doing the tests separately via github actions syntax seems complicated
+function github_env_runtests(job::Dict; varname::String, filename::String)
+   testcmd = ["using Pkg;"]
+   for (pkg, param) in job
+      if get(param, "test", false)
+         if length(get(param, "options", [])) > 0
+            push!(testcmd, """Pkg.test("$pkg"; test_args=$(string.(param["options"])));""")
+         else
+            push!(testcmd, """Pkg.test("$pkg");""")
+         end
+      end
+   end
+   open(filename, "a") do io
+      println(io, "$varname=", join(testcmd))
+   end
+end
+
+end

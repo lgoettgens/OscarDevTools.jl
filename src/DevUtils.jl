@@ -1,3 +1,13 @@
+module DevUtils
+
+import Pkg
+import LibGit2
+
+using ..Helpers
+import ..OscarCI.find_branch, ..OscarCI.github_repo_exists
+
+export oscar_develop, oscar_update, oscar_branch, oscar_add_remotes
+
 function fetch_project(repo::LibGit2.GitRepo)
    for remote in LibGit2.remotes(repo)
       LibGit2.fetch(repo; remote=remote)
@@ -289,3 +299,5 @@ end
 
 oscar_branch(branch::AbstractString; dir=default_dev_dir, start="origin/master") =
    oscar_branch(pkg_names(dir), branch; dir=dir, start=start)
+
+end
