@@ -33,7 +33,7 @@ jobs:
     - id: set-matrix
       run: |
         julia --project=oscar-dev -e "using OscarDevTools.OscarCI;
-                 ciprefs = parse_meta(\"OscarCI-noinclude.toml\");
+                 ciprefs = parse_meta(\"test/meta/OscarCI-noinclude.toml\");
                  cimat = ci_matrix(ciprefs;
                                    pr=${PR_NUMBER},
                                    active_repo=\"${GITHUB_REPOSITORY}\");
