@@ -138,23 +138,25 @@ function ci_matrix(meta::Dict{String,Any}; pr=0, fork=nothing, active_repo=nothi
    
    # add includes for custom configurations
    matrix["include"] = []
-   for (name,inc) in meta["include"]
-      named_include = Dict()
-      for (key,val) in inc
-         if key in ("os","julia-version")
-            named_include[key] = val
-         else
-            named_include[key] = Dict{String,Any}(
-                                    "name" => "$(pkg_parsebranch(key,val)[3])",
-                                    "branch" => val
-                                 )
-            named_include[key]["test"] = haskey(meta["pkgs"],key) ?
-                                         meta["pkgs"][key]["test"] : false
-            named_include[key]["options"] = haskey(meta["pkgs"],key) ?
-                                            meta["pkgs"][key]["testoptions"] : []
+   if haskey(meta, "include")
+      for (name,inc) in meta["include"]
+         named_include = Dict()
+         for (key,val) in inc
+            if key in ("os","julia-version")
+               named_include[key] = val
+            else
+               named_include[key] = Dict{String,Any}(
+                                                     "name" => "$(pkg_parsebranch(key,val)[3])",
+                                                     "branch" => val
+                                                    )
+               named_include[key]["test"] = haskey(meta["pkgs"],key) ?
+               meta["pkgs"][key]["test"] : false
+               named_include[key]["options"] = haskey(meta["pkgs"],key) ?
+               meta["pkgs"][key]["testoptions"] : []
+            end
          end
+         push!(matrix["include"],named_include)
       end
-      push!(matrix["include"],named_include)
    end
    return matrix
 end
