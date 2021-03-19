@@ -22,7 +22,7 @@ jobs:
       if: github.repository == 'oscar-system/OscarDevTools.jl'
       run: |
         julia --project=oscar-dev -e "using Pkg;
-                                      Pkg.add(path=\".\");
+                                      Pkg.develop(PackageSpec(path=\".\"));
                                       Pkg.instantiate();"
     - name: fetch OscarDevTools
       if: github.repository != 'oscar-system/OscarDevTools.jl'
@@ -61,7 +61,7 @@ jobs:
         if: github.repository == 'oscar-system/OscarDevTools.jl'
         run: |
           julia --project=oscar-dev -e "using Pkg;
-                                        Pkg.add(path=\".\");
+                                        Pkg.develop(PackageSpec(path=\".\"));
                                         Pkg.instantiate();"
       - name: fetch OscarDevTools
         if: github.repository != 'oscar-system/OscarDevTools.jl'
