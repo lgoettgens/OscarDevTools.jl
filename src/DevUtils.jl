@@ -190,7 +190,7 @@ function oscar_develop(pkgs::Dict{String,Any}; dir=default_dev_dir, branch::Abst
          if !isnothing(active_pkg)
             # during CI we always need to dev the active checkout
             @info "  reusing current dir for $active_pkg"
-            Pkg.develop(path=".")
+            Pkg.develop(Pkg.PackageSpec(path="."))
          end
          for (pkg, pkgbranch) in pkgs
             if pkg === active_pkg
@@ -202,7 +202,7 @@ function oscar_develop(pkgs::Dict{String,Any}; dir=default_dev_dir, branch::Abst
                else
                   isnothing(pkgbranch) && (pkgbranch=branch)
                   devdir = checkout_project(pkg, dir; branch=pkgbranch, fork=fork)
-                  Pkg.develop(path=devdir)
+                  Pkg.develop(Pkg.PackageSpec(path=devdir))
                end
             end
          end
