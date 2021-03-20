@@ -101,6 +101,16 @@ function checkout_branch(pkg::AbstractString, devdir::AbstractString; branch::Ab
    end
 end
 
+function merge_master(pkg::AbstractString, devdir::AbstractString)
+   @info "$pkg: trying to merge 'origin/master'"
+   repo = LibGit2.GitRepo(devdir)
+   LibGit2.fetch(repo; remote="origin")
+   master = LibGit2.GitAnnotated(repo, "origin/master")
+   if !LibGit2.merge!(repo, [master])
+      @error "$pkg: unable to merge 'origin/master'"
+   end
+end
+
 function clone_project(pkg::AbstractString, devdir::AbstractString; branch::AbstractString, fork=nothing, url=nothing)
    @info "$pkg: cloning to '$devdir' (branch '$branch'):"
    if !isnothing(fork)
@@ -114,13 +124,16 @@ function clone_project(pkg::AbstractString, devdir::AbstractString; branch::Abst
    LibGit2.set_remote_push_url(repo,"origin", pkg_giturl(pkg))
 end
 
-function checkout_project(pkg::AbstractString, dir::AbstractString; branch::AbstractString="master", fork=nothing)
+function checkout_project(pkg::AbstractString, dir::AbstractString; branch::AbstractString="master", fork=nothing, merge=false)
    (url, branch, fork) = find_branch(pkg, branch; fork=fork)
    devdir = abspath(joinpath(dir, pkg))
    if isdir(devdir)
       checkout_branch(pkg, devdir; branch=branch, fork=fork, url=url)
    else
       clone_project(pkg, devdir; branch=branch, fork=fork, url=url)
+   end
+   if merge && (branch != "master" || !isnothing(fork))
+      merge_master(pkg, devdir)
    end
    return devdir
 end
@@ -165,6 +178,8 @@ julia --project=dir/project
 - `fork=nothing`: github organisation/user for branch lookup for all packages.
 - `active_repo=nothing`: used in CI to reuse the existing checkout of that package,
   corresponding to the github variable `\$GITHUB_REPOSITORY`.
+- `merge=false`: used for CI: try to merge latest master into each checked out branch
+  please note that this will not create the merge-commit
 
 Each package name can optionally contain a branchname and a fork url:
 - `PackageName#somebranch` will checkout `somebranch` from the default upstream.
@@ -181,7 +196,7 @@ julia> oscar_develop(["Oscar","Polymake"]; branch="some_feature")
 julia> oscar_develop(["Oscar","Singular#more_rings"]; dir="dev_more_rings")
 ```
 """
-function oscar_develop(pkgs::Dict{String,Any}; dir=default_dev_dir, branch::AbstractString="master", fork=nothing, active_repo=nothing)
+function oscar_develop(pkgs::Dict{String,Any}; dir=default_dev_dir, branch::AbstractString="master", fork=nothing, active_repo=nothing, merge=false)
    mkpath(dir)
    active_pkg = pkg_from_repo(active_repo)
    withenv("JULIA_PKG_DEVDIR"=>"$dir") do
@@ -201,7 +216,7 @@ function oscar_develop(pkgs::Dict{String,Any}; dir=default_dev_dir, branch::Abst
                   Pkg.add(pkg)
                else
                   isnothing(pkgbranch) && (pkgbranch=branch)
-                  devdir = checkout_project(pkg, dir; branch=pkgbranch, fork=fork)
+                  devdir = checkout_project(pkg, dir; branch=pkgbranch, fork=fork, merge=merge)
                   Pkg.develop(Pkg.PackageSpec(path=devdir))
                end
             end
