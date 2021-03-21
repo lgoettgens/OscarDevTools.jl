@@ -1,7 +1,7 @@
 module Helpers
 
 export default_dev_dir, pkg_org, pkg_from_repo, pkg_url, pkg_giturl,
-       pkg_names, pkg_parsebranch
+       pkg_names, pkg_parsebranch, fork_from_repo
 
 const orgnames = Dict(
                      "AbstractAlgebra" => "Nemocas",
@@ -18,6 +18,8 @@ pkg_org(pkg::AbstractString) = get(orgnames, pkg, "oscar-system")
 pkg_repo(pkg::AbstractString) = pkg in non_jl_repo ? pkg : "$pkg.jl"
 
 pkg_from_repo(repo) = isnothing(repo) ? nothing : match(r"/([-_\w]+)(?:\.jl)?$",repo)[1]
+
+fork_from_repo(repo) = isnothing(repo) ? nothing : match(r"^([-_\w]+)/",repo)[1]
 
 function pkg_url(pkg::AbstractString; full=true, fork=nothing)
    org = isnothing(fork) ? pkg_org(pkg) : fork
