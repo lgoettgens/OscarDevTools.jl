@@ -18,7 +18,7 @@ export github_auth, github_repo, github_repo_exists, find_branch,
 
 const default_os = [ "ubuntu-latest" ]
 const default_julia = [ "~1.6.0-0" ]
-const default_branches = [ "master", "release" ]
+const default_branches = [ "<matching>", "release" ]
 
 ### end defaults
 ######
@@ -110,7 +110,8 @@ function ci_matrix(meta::Dict{String,Any}; pr=0, fork=nothing, active_repo=nothi
             fork = ghpr.head.user.login
          end
          pr_branch = ghpr.head.ref
-         pushfirst!(global_branches, pr_branch)
+         # replace '<matching>' with pr_branch
+         global_branches[global_branches.=="<matching>"] .= pr_branch
       else
          @warn "PR branch name 'master' cannot be used for branch autodetection"
       end
@@ -148,13 +149,16 @@ function ci_matrix(meta::Dict{String,Any}; pr=0, fork=nothing, active_repo=nothi
 
       branches = pkgmeta["branches"]
 
-      if !isempty(pr_branch)
+      if !isempty(pr_branch) && "<matching>" in branches
          (url, branch, pkg_fork) = find_branch(pkg, pr_branch; fork=fork)
-         # don't (re-)add 'master'
+         # replace '<matching>' with pr_branch
          if !isnothing(pkg_fork) || !in(branch,branches)
-            push!(branches, isnothing(pkg_fork) ?  branch : "$url#$branch")
+            branches[branches.=="<matching>"] .= isnothing(pkg_fork) ?
+                                                 branch : "$url#$branch"
          end
       end
+      # remove matching branch specifier if it cannot be found
+      filter!(p->p!="<matching>",branches)
       if !isempty(branches)
          matrix[pkg] = [Dict("name" => pkg_parsebranch(pkg,branch)[3],
                              "branch" => branch,
@@ -174,12 +178,26 @@ function ci_matrix(meta::Dict{String,Any}; pr=0, fork=nothing, active_repo=nothi
                                 "branch" => branch,
                                 "pkgs" => deepcopy(pkgs)))
          # we need to record the fork-url for the matching branch if necessary
-         if branch == pr_branch
+         if branch == "<matching>"
+            branchfound = false
             for (pkgname, pkgmeta) in pkgs
                (url, pkg_branch, pkg_fork) = find_branch(pkgname, branch; fork=fork)
                if !isnothing(pkg_fork)
-                  branchdicts[end]["pkgs"][pkgname]["url"] = "$url#$pkg_branch"
+                  branchdicts[end]["pkgs"][pkgname]["branch"] = "$url#$pkg_branch"
+                  branchfound = true
+               elseif pkg_branch != "master"
+                  branchdicts[end]["pkgs"][pkgname]["branch"] = "$pkg_branch"
+                  branchfound = true
+               else
+                  # put master in dict, which will be kept only if it is not
+                  # already in the global branch list
+                  # (to make sure <matching> is removed)
+                  branchdicts[end]["pkgs"][pkgname]["branch"] = "$pkg_branch"
                end
+            end
+            if !branchfound && "master" in global_branches
+               # no matching branch found and master already exists
+               pop!(branchdicts)
             end
          end
       end
@@ -226,7 +244,7 @@ function job_meta(job_json::AbstractString)
       global_branch = job_dict["branches"]["branch"]
       for (pkgname, pkgmeta) in job_dict["branches"]["pkgs"]
          if !haskey(meta,pkgname)
-            meta[pkgname] = Dict("branch" => get(pkgmeta,"url",
+            meta[pkgname] = Dict("branch" => get(pkgmeta,"branch",
                                                  global_branch),
                                  "test" => pkgmeta["test"],
                                  "options" => pkgmeta["options"],
