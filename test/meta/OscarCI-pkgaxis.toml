@@ -1,0 +1,14 @@
+title = "metadata for oscar CI run"
+
+# keep it small to prevent job-explosion
+[env]
+os = [ "ubuntu-latest" ]
+julia-version = [ "~1.6.0-0" ]
+
+# for OscarDevTools we mostly use release versions
+[pkgs]
+  [pkgs.Oscar]
+  branches = [ "release", "master" ]
+  test = true
+  testoptions = []
+

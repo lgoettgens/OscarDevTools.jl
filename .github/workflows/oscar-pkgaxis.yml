@@ -1,7 +1,5 @@
-name: OscarCI (library)
-# not really testing that library here just making sure the pkg name doesn't break stuff
-# building + override must be added manually to the yml below
-# when using this in a repository
+name: OscarCI (per pkg axis)
+# after main repo switches to allowing gobal axis
 
 on:
    pull_request:
@@ -25,10 +23,10 @@ jobs:
       run: |
         julia --project=. -e "using Pkg; Pkg.instantiate();
                  using OscarDevTools.OscarCI;
-                 ciprefs = parse_meta(\"test/meta/OscarCI-nonjl.toml\");
+                 ciprefs = parse_meta(\"test/meta/OscarCI-pkgaxis.toml\");
                  cimat = ci_matrix(ciprefs;
                                    pr=${PR_NUMBER},
-                                   active_repo=\"oscar-system/libpolymake-julia\");
+                                   active_repo=\"${GITHUB_REPOSITORY}\");
                  @show cimat;
                  println(github_json(cimat));"
 
@@ -59,7 +57,7 @@ jobs:
                    meta = job_meta_env(\"MATRIX_CONTEXT\");
                    oscar_develop(job_pkgs(meta);
                                  dir=\"oscar-dev\",
-                                 active_repo=\"oscar-system/libpolymake-julia\");
+                                 active_repo=\"${GITHUB_REPOSITORY}\");
                    github_env_runtests(meta;
                                        varname=\"oscar_run_tests\",
                                        filename=\"${GITHUB_ENV}\");"

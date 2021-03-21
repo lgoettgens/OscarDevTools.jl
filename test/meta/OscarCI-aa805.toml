@@ -11,21 +11,18 @@ title = "metadata for oscar CI run"
 # and not expand separately
 [pkgs]
   [pkgs.Oscar]
-  test = true
+  test = false
+  testoptions = []
+
+  [pkgs.Hecke]
+  test = false
+  testoptions = [ "short" ]
+
+  [pkgs.Nemo]
+  test = false
   testoptions = []
 
   [pkgs.Singular]
   test = false
   testoptions = []
-
-  [pkgs.Polymake]
-  branches = [ "master" ]
-  test = false
-  testoptions = []
-
-[include]
-  [include.macos]
-  Nemo = "master"
-  os = "macos-latest"
-  julia-version = "~1.6.0-0"
 

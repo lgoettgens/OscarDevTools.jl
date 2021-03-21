@@ -1,7 +1,4 @@
-name: OscarCI (library)
-# not really testing that library here just making sure the pkg name doesn't break stuff
-# building + override must be added manually to the yml below
-# when using this in a repository
+name: OscarCI (AA 805)
 
 on:
    pull_request:
@@ -25,10 +22,10 @@ jobs:
       run: |
         julia --project=. -e "using Pkg; Pkg.instantiate();
                  using OscarDevTools.OscarCI;
-                 ciprefs = parse_meta(\"test/meta/OscarCI-nonjl.toml\");
+                 ciprefs = parse_meta(\"test/meta/OscarCI-aa805.toml\");
                  cimat = ci_matrix(ciprefs;
-                                   pr=${PR_NUMBER},
-                                   active_repo=\"oscar-system/libpolymake-julia\");
+                                   pr=805,
+                                   active_repo=\"Nemocas/AbstractAlgebra.jl\");
                  @show cimat;
                  println(github_json(cimat));"
 
@@ -59,7 +56,7 @@ jobs:
                    meta = job_meta_env(\"MATRIX_CONTEXT\");
                    oscar_develop(job_pkgs(meta);
                                  dir=\"oscar-dev\",
-                                 active_repo=\"oscar-system/libpolymake-julia\");
+                                 active_repo=\"Nemocas/AbstractAlgebra.jl\");
                    github_env_runtests(meta;
                                        varname=\"oscar_run_tests\",
                                        filename=\"${GITHUB_ENV}\");"
