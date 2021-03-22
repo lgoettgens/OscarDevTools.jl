@@ -173,17 +173,24 @@ function ci_matrix(meta::Dict{String,Any}; pr=0, fork=nothing, active_repo=nothi
                   for pkg in global_axis_pkgs )
       namestr = "["*join(global_axis_pkgs,",")*"]"
       branchdicts = []
-      for branch in global_branches 
+      for branch in global_branches
+         if branch == "<matching>"
+            @warn "'<matching>' specified but no PR branch could be found"
+            continue
+         end
          push!(branchdicts,Dict("name" => "$namestr#$branch",
                                 "branch" => branch,
                                 "pkgs" => deepcopy(pkgs)))
          # we need to record the fork-url for the matching branch if necessary
-         if branch == "<matching>"
+         if branch == pr_branch
+            namestr_branches = []
             branchfound = false
             for (pkgname, pkgmeta) in pkgs
                (url, pkg_branch, pkg_fork) = find_branch(pkgname, branch; fork=fork)
+               push!(namestr_branches,"$pkgname#$pkg_branch")
                if !isnothing(pkg_fork)
                   branchdicts[end]["pkgs"][pkgname]["branch"] = "$url#$pkg_branch"
+                  namestr_branches[end] = "$pkgname#$pkg_fork#$pkg_branch"
                   branchfound = true
                elseif pkg_branch != "master"
                   branchdicts[end]["pkgs"][pkgname]["branch"] = "$pkg_branch"
@@ -195,6 +202,7 @@ function ci_matrix(meta::Dict{String,Any}; pr=0, fork=nothing, active_repo=nothi
                   branchdicts[end]["pkgs"][pkgname]["branch"] = "$pkg_branch"
                end
             end
+            branchdicts[end]["name"] = "matching: ["*join(namestr_branches,",")*"]"
             if !branchfound && "master" in global_branches
                # no matching branch found and master already exists
                pop!(branchdicts)
