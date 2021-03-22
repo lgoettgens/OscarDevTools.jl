@@ -98,7 +98,8 @@ function ci_matrix(meta::Dict{String,Any}; pr=0, fork=nothing, active_repo=nothi
    # assign defaults if unset
    get!(matrix,"os",default_os)
    get!(matrix,"julia-version",default_julia)
-   global_branches = copy(default_branches)
+   # matrix["branches"] will be replaced later via global_branches
+   global_branches = get(matrix,"branches",copy(default_branches))
 
    pr_branch = ""
    if pr > 0 && !isnothing(active_pkg) && isnothing(fork)
