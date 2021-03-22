@@ -191,7 +191,7 @@ function ci_matrix(meta::Dict{String,Any}; pr=0, fork=nothing, active_repo=nothi
                push!(namestr_branches,"$pkgname#$pkg_branch")
                if !isnothing(pkg_fork)
                   branchdicts[end]["pkgs"][pkgname]["branch"] = "$url#$pkg_branch"
-                  namestr_branches[end] = "$pkgname#$pkg_fork#$pkg_branch"
+                  namestr_branches[end] = "$pkgname@$pkg_fork#$pkg_branch"
                   branchfound = true
                elseif pkg_branch != "master"
                   branchdicts[end]["pkgs"][pkgname]["branch"] = "$pkg_branch"
@@ -222,6 +222,10 @@ function ci_matrix(meta::Dict{String,Any}; pr=0, fork=nothing, active_repo=nothi
             if key in ("os","julia-version")
                named_include[key] = val
             else
+               if val == "<matching>"
+                  (url, branch, _) = find_branch(key, pr_branch; fork=fork)
+                  val = "$url#$branch"
+               end
                named_include[key] = Dict{String,Any}(
                                                      "name" => "$(pkg_parsebranch(key,val)[3])",
                                                      "branch" => val

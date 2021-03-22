@@ -16,17 +16,18 @@ title = "metadata for oscar CI run"
   testoptions = []
 
   [pkgs.Singular]
-  test = false
+  branches = []
+  test = true
   testoptions = []
 
   [pkgs.Polymake]
-  branches = [ "master" ]
+  branches = [ "release" ]
   test = false
   testoptions = []
 
 [include]
   [include.macos]
-  Nemo = "master"
+  Singular = "<matching>"
   os = "macos-latest"
   julia-version = "~1.6.0-0"
 
