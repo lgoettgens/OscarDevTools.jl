@@ -201,7 +201,7 @@ julia> oscar_develop(["Oscar","Singular#more_rings"]; dir="dev_more_rings")
 function oscar_develop(pkgs::Dict{String,Any}; dir=default_dev_dir, branch::AbstractString="master", fork=nothing, active_repo=nothing, merge=false)
    mkpath(dir)
    active_pkg = pkg_from_repo(active_repo)
-   if isnothing(fork)
+   if isnothing(fork) && !isnothing(active_repo) && fork_from_repo(active_repo) != pkg_org(active_pkg)
       fork = fork_from_repo(active_repo)
    end
    withenv("JULIA_PKG_DEVDIR"=>"$dir") do
