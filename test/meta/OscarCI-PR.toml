@@ -8,12 +8,12 @@ julia-version = [ "~1.6.0-0" ]
 # for OscarDevTools we mostly use release versions
 [pkgs]
   [pkgs.Oscar]
-  branches = [ "master" ]
+  branches = [ "<matching>" ]
   test = false
 
   [pkgs.Hecke]
   branches = [ "release" ]
-  test = true
+  test = false
   testoptions = [ "short" ]
 
   [pkgs.Polymake]
