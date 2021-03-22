@@ -101,13 +101,14 @@ function checkout_branch(pkg::AbstractString, devdir::AbstractString; branch::Ab
    end
 end
 
-function merge_master(pkg::AbstractString, devdir::AbstractString)
-   @info "$pkg: trying to merge 'origin/master'"
+function merge_branch(pkg::AbstractString, devdir::AbstractString, branch::Any)
+   branch = branch == true ? "origin/master" : "$branch"
+   @info "$pkg: trying to merge '$branch'"
    repo = LibGit2.GitRepo(devdir)
-   LibGit2.fetch(repo; remote="origin")
-   master = LibGit2.GitAnnotated(repo, "origin/master")
-   if !LibGit2.merge!(repo, [master])
-      @error "$pkg: unable to merge 'origin/master'"
+   fetch_project(repo)
+   branch = LibGit2.GitAnnotated(repo, branch)
+   if !LibGit2.merge!(repo, [branch])
+      @error "$pkg: unable to merge '$branch'"
    end
 end
 
@@ -132,8 +133,8 @@ function checkout_project(pkg::AbstractString, dir::AbstractString; branch::Abst
    else
       clone_project(pkg, devdir; branch=branch, fork=fork, url=url)
    end
-   if merge && (branch != "master" || !isnothing(fork))
-      merge_master(pkg, devdir)
+   if merge !=false && (branch != "master" || !isnothing(fork))
+      merge_branch(pkg, devdir, merge)
    end
    return devdir
 end
@@ -178,8 +179,9 @@ julia --project=dir/project
 - `fork=nothing`: github organisation/user for branch lookup for all packages.
 - `active_repo=nothing`: used in CI to reuse the existing checkout of that package,
   corresponding to the github variable `\$GITHUB_REPOSITORY`.
-- `merge=false`: used for CI: try to merge latest master into each checked out branch
-  please note that this will not create the merge-commit
+- `merge=false`: used for CI: if `true` try to merge the latest `origin/master` into
+  each checked out project; or any other branch if given a String specifying a `LibGit2.GitAnnotated`.
+  Please note that this will not create the merge-commit (similar to `--no-commit`).
 
 Each package name can optionally contain a branchname and a fork url:
 - `PackageName#somebranch` will checkout `somebranch` from the default upstream.
