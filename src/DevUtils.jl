@@ -207,7 +207,7 @@ function oscar_develop(pkgs::Dict{String,Any}; dir=default_dev_dir, branch::Abst
    withenv("JULIA_PKG_DEVDIR"=>"$dir") do
       Pkg.activate(joinpath(dir,"project")) do
          @info "populating development directory '$dir':"
-         if !isnothing(active_pkg)
+         if !isnothing(active_pkg) && !in(active_pkg, Helpers.non_jl_repo)
             # during CI we always need to dev the active checkout
             @info "  reusing current dir for $active_pkg"
             Pkg.develop(Pkg.PackageSpec(path="."))
