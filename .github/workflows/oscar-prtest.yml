@@ -1,4 +1,4 @@
-name: OscarCI - PR meta
+name: OscarCI (PR meta)
 
 on:
    pull_request:

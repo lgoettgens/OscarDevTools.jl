@@ -101,6 +101,17 @@ function checkout_branch(pkg::AbstractString, devdir::AbstractString; branch::Ab
    end
 end
 
+function merge_branch(pkg::AbstractString, devdir::AbstractString, branch::Any)
+   branch = branch == true ? "origin/master" : "$branch"
+   @info "$pkg: trying to merge '$branch'"
+   repo = LibGit2.GitRepo(devdir)
+   fetch_project(repo)
+   branch = LibGit2.GitAnnotated(repo, branch)
+   if !LibGit2.merge!(repo, [branch])
+      @error "$pkg: unable to merge '$branch'"
+   end
+end
+
 function clone_project(pkg::AbstractString, devdir::AbstractString; branch::AbstractString, fork=nothing, url=nothing)
    @info "$pkg: cloning to '$devdir' (branch '$branch'):"
    if !isnothing(fork)
@@ -114,13 +125,16 @@ function clone_project(pkg::AbstractString, devdir::AbstractString; branch::Abst
    LibGit2.set_remote_push_url(repo,"origin", pkg_giturl(pkg))
 end
 
-function checkout_project(pkg::AbstractString, dir::AbstractString; branch::AbstractString="master", fork=nothing)
+function checkout_project(pkg::AbstractString, dir::AbstractString; branch::AbstractString="master", fork=nothing, merge=false)
    (url, branch, fork) = find_branch(pkg, branch; fork=fork)
    devdir = abspath(joinpath(dir, pkg))
    if isdir(devdir)
       checkout_branch(pkg, devdir; branch=branch, fork=fork, url=url)
    else
       clone_project(pkg, devdir; branch=branch, fork=fork, url=url)
+   end
+   if merge !=false && (branch != "master" || !isnothing(fork))
+      merge_branch(pkg, devdir, merge)
    end
    return devdir
 end
@@ -165,6 +179,9 @@ julia --project=dir/project
 - `fork=nothing`: github organisation/user for branch lookup for all packages.
 - `active_repo=nothing`: used in CI to reuse the existing checkout of that package,
   corresponding to the github variable `\$GITHUB_REPOSITORY`.
+- `merge=false`: used for CI: if `true` try to merge the latest `origin/master` into
+  each checked out project; or any other branch if given a String specifying a `LibGit2.GitAnnotated`.
+  Please note that this will not create the merge-commit (similar to `--no-commit`).
 
 Each package name can optionally contain a branchname and a fork url:
 - `PackageName#somebranch` will checkout `somebranch` from the default upstream.
@@ -181,16 +198,19 @@ julia> oscar_develop(["Oscar","Polymake"]; branch="some_feature")
 julia> oscar_develop(["Oscar","Singular#more_rings"]; dir="dev_more_rings")
 ```
 """
-function oscar_develop(pkgs::Dict{String,Any}; dir=default_dev_dir, branch::AbstractString="master", fork=nothing, active_repo=nothing)
+function oscar_develop(pkgs::Dict{String,Any}; dir=default_dev_dir, branch::AbstractString="master", fork=nothing, active_repo=nothing, merge=false)
    mkpath(dir)
    active_pkg = pkg_from_repo(active_repo)
+   if isnothing(fork)
+      fork = fork_from_repo(active_repo)
+   end
    withenv("JULIA_PKG_DEVDIR"=>"$dir") do
       Pkg.activate(joinpath(dir,"project")) do
          @info "populating development directory '$dir':"
          if !isnothing(active_pkg)
             # during CI we always need to dev the active checkout
             @info "  reusing current dir for $active_pkg"
-            Pkg.develop(path=".")
+            Pkg.develop(Pkg.PackageSpec(path="."))
          end
          for (pkg, pkgbranch) in pkgs
             if pkg === active_pkg
@@ -201,8 +221,8 @@ function oscar_develop(pkgs::Dict{String,Any}; dir=default_dev_dir, branch::Abst
                   Pkg.add(pkg)
                else
                   isnothing(pkgbranch) && (pkgbranch=branch)
-                  devdir = checkout_project(pkg, dir; branch=pkgbranch, fork=fork)
-                  Pkg.develop(path=devdir)
+                  devdir = checkout_project(pkg, dir; branch=pkgbranch, fork=fork, merge=merge)
+                  Pkg.develop(Pkg.PackageSpec(path=devdir))
                end
             end
          end

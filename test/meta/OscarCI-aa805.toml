@@ -1,0 +1,28 @@
+title = "metadata for oscar CI run"
+
+# defaults for os, julia-version, and branches are set in OscarDevTools
+# - a matching branch for the current pull request will always be added
+[env]
+#os = [ "ubuntu-latest" ]
+#julia-version = [ "~1.6.0-0" ]
+#branches = [ "master", "release" ]
+
+# pkgs without branches specified will use the global branches axis
+# and not expand separately
+[pkgs]
+  [pkgs.Oscar]
+  test = false
+  testoptions = []
+
+  [pkgs.Hecke]
+  test = false
+  testoptions = [ "short" ]
+
+  [pkgs.Nemo]
+  test = false
+  testoptions = []
+
+  [pkgs.Singular]
+  test = false
+  testoptions = []
+
