@@ -1,0 +1,41 @@
+title = "metadata for oscar CI run"
+
+[env]
+os = [ "ubuntu-latest", "macos-latest" ]
+julia-version = [ "1.3", "1.4", "1.5", "~1.6.0-0", "nightly" ]
+branches = [ "<matching>" ]
+
+[pkgs]
+  [pkgs.Singular]
+  test = true
+  testoptions = []
+
+  # should not add it to the matrix but enable testing for includes
+  [pkgs.Oscar]
+  test = true
+  branches = []
+
+[include]
+  [include.oscar]
+  Oscar = "<matching>"
+  Singular = "<matching>"
+  julia-version = "~1.6.0-0"
+  os = "ubuntu-latest"
+
+  [include.oscarmac]
+  Oscar = "<matching>"
+  Singular = "<matching>"
+  julia-version = "~1.6.0-0"
+  os = "macos-latest"
+
+  [include.oscarstable]
+  Oscar = "release"
+  Singular = "release"
+  julia-version = "~1.6.0-0"
+  os = "ubuntu-latest"
+
+  [include.oscarstablemac]
+  Oscar = "release"
+  Singular = "release"
+  julia-version = "~1.6.0-0"
+  os = "macos-latest"
