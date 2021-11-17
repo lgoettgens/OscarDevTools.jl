@@ -5,13 +5,6 @@ on:
      branches:
        - master
 
-concurrency:
-  # group by workflow and ref; the last slightly strange component ensures that for pull
-  # requests, we limit to 1 concurrent job, but for the master branch we don't
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.ref != 'refs/heads/master' || github.run_number }}
-  # Cancel intermediate builds, but only if it is a pull request build.
-  cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
-
 jobs:
   generatematrix:
     runs-on: ubuntu-latest
@@ -19,7 +12,6 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     env:
       PR_NUMBER: ${{github.event.number}}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
     - uses: actions/checkout@v2.1.0
     - name: "Set up Julia"
@@ -41,7 +33,7 @@ jobs:
     - id: set-matrix
       run: |
         julia --project=oscar-dev -e "using OscarDevTools.OscarCI;
-                 ciprefs = parse_meta(\"OscarCI.toml\");
+                 ciprefs = parse_meta(\"test/meta/OscarCI-resolvefail.toml\");
                  cimat = ci_matrix(ciprefs;
                                    pr=${PR_NUMBER},
                                    active_repo=\"${GITHUB_REPOSITORY}\");
@@ -55,7 +47,6 @@ jobs:
     continue-on-error: ${{ matrix.julia-version == 'nightly' }}
     env:
       PR_NUMBER: ${{github.event.number}}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     strategy:
       matrix: ${{fromJSON(needs.generatematrix.outputs.matrix)}}
       fail-fast: false
@@ -92,21 +83,12 @@ jobs:
                                  active_repo=\"${GITHUB_REPOSITORY}\");
                    github_env_runtests(meta;
                                        varname=\"oscar_run_tests\",
-                                       filename=\"${GITHUB_ENV}\");
-                   github_env_run_doctests(meta;
-                                           varname=\"oscar_run_doctests\",
-                                           filename=\"${GITHUB_ENV}\");"
-
+                                       filename=\"${GITHUB_ENV}\");"
       - name: "Run tests"
         if: steps.setupdev.outcome == 'success'
         run: |
           echo '${{ env.oscar_run_tests }}'
           julia --project=oscar-dev/project/ -e '${{ env.oscar_run_tests }}'
-      - name: "Run doctests"
-        if: steps.setupdev.outcome == 'success' && (matrix.julia-version == '~1.6.0-0' || matrix.julia-version == '1.6')
-        run: |
-          echo '${{ env.oscar_run_doctests }}'
-          julia --project=oscar-dev/project/ -e '${{ env.oscar_run_doctests }}'
       - name: "Warn resolve failure"
         if: steps.setupdev.outcome != 'success'
         run: |
