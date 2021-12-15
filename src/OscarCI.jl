@@ -11,7 +11,8 @@ using ..Helpers
 
 export github_auth, github_repo, github_repo_exists, find_branch,
        parse_meta, ci_matrix, github_json,
-       parse_job, job_meta_env, job_pkgs, github_env_runtests
+       parse_job, job_meta_env, job_pkgs, github_env_runtests,
+       github_env_run_doctests
 
 ######
 ### defaults for julia-version, os and branches
@@ -289,6 +290,21 @@ function github_env_runtests(job::Dict; varname::String, filename::String)
          else
             push!(testcmd, """Pkg.test("$pkg");""")
          end
+      end
+   end
+   open(filename, "a") do io
+      println(io, "$varname=", join(testcmd))
+   end
+end
+
+function github_env_run_doctests(job::Dict; varname::String, filename::String)
+   testcmd = ["using Pkg;", "Pkg.add(\"Documenter\");", "Pkg.add(\"DocumenterCitations\");", "Pkg.add(\"DocumenterMarkdown\");"]
+   for (pkg, param) in job
+      push!(testcmd, """Pkg.test("$pkg"; test_args=$(string.(param["options"])));""")
+      if pkg == "Oscar"
+         push!(testcmd, """DocMeta.setdocmeta!(Oscar, :DocTestSetup, :(using Oscar, Oscar.Graphs); recursive = true); doctest(Oscar)""")
+      else
+         push!(testcmd, """DocMeta.setdocmeta!($pkg, :DocTestSetup, :(using $pkg); recursive = true); doctest($pkg)""")
       end
    end
    open(filename, "a") do io
