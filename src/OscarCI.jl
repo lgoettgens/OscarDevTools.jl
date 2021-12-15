@@ -303,7 +303,7 @@ function github_env_run_doctests(job::Dict; varname::String, filename::String)
       if pkg == "Oscar"
          push!(testcmd, """DocMeta.setdocmeta!(Oscar, :DocTestSetup, :(using Oscar, Oscar.Graphs); recursive = true); using Oscar; doctest(Oscar);""")
       else
-         push!(testcmd, """DocMeta.setdocmeta!($pkg, :DocTestSetup, :(using $pkg); recursive = true); using $pkg; doctest($pkg);""")
+         push!(testcmd, """using $pkg; DocMeta.setdocmeta!($pkg, :DocTestSetup, :(using $pkg); recursive = true); doctest($pkg);""")
       end
    end
    open(filename, "a") do io
