@@ -301,9 +301,9 @@ function github_env_run_doctests(job::Dict; varname::String, filename::String)
    testcmd = ["using Pkg;", "Pkg.add(\"Documenter\");", "Pkg.add(\"DocumenterCitations\");", "Pkg.add(\"DocumenterMarkdown\"); using Documenter;"]
    for (pkg, param) in job
       if pkg == "Oscar"
-         push!(testcmd, """DocMeta.setdocmeta!(Oscar, :DocTestSetup, :(using Oscar, Oscar.Graphs); recursive = true); doctest(Oscar);""")
+         push!(testcmd, """DocMeta.setdocmeta!(Oscar, :DocTestSetup, :(using Oscar, Oscar.Graphs); recursive = true); using Oscar; doctest(Oscar);""")
       else
-         push!(testcmd, """DocMeta.setdocmeta!($pkg, :DocTestSetup, :(using $pkg); recursive = true); doctest($pkg);""")
+         push!(testcmd, """DocMeta.setdocmeta!($pkg, :DocTestSetup, :(using $pkg); recursive = true); using $pkg; doctest($pkg);""")
       end
    end
    open(filename, "a") do io
