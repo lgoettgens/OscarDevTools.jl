@@ -300,7 +300,6 @@ end
 function github_env_run_doctests(job::Dict; varname::String, filename::String)
    testcmd = ["using Pkg;", "Pkg.add(\"Documenter\");", "Pkg.add(\"DocumenterCitations\");", "Pkg.add(\"DocumenterMarkdown\");"]
    for (pkg, param) in job
-      push!(testcmd, """Pkg.test("$pkg"; test_args=$(string.(param["options"])));""")
       if pkg == "Oscar"
          push!(testcmd, """DocMeta.setdocmeta!(Oscar, :DocTestSetup, :(using Oscar, Oscar.Graphs); recursive = true); doctest(Oscar)""")
       else
