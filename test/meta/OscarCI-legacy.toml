@@ -13,5 +13,5 @@ Oscar = [ "release" ]
   [include.julia]
   Oscar = "master"
   Polymake = "release"
-  julia-version = "1.5"
+  julia-version = "1.7"
   os = "macos-latest"
