@@ -208,6 +208,11 @@ function oscar_develop(pkgs::Dict{String,Any}; dir=default_dev_dir, branch::Abst
       Pkg.activate(joinpath(dir,"project")) do
          @info "populating development directory '$dir':"
          devdirs = []
+         if ("Oscar"=>"release") in pkgs
+            # pin oscar first
+            Pkg.add("Oscar")
+            Pkg.pin("Oscar")
+         end
          for (pkg, pkgbranch) in pkgs
             if pkg === active_pkg
                continue
