@@ -242,17 +242,29 @@ function oscar_develop(pkgs::Dict{String,Any}; dir=default_dev_dir, branch::Abst
                Pkg.develop(Pkg.PackageSpec(path="."))
             end
          catch err
-            if err isa Pkg.Resolve.ResolverError
+            # if we are running on github actions skip subsequent steps
+            if err isa Pkg.Resolve.ResolverError && haskey(ENV,"MATRIX_CONTEXT") && haskey(ENV, "GITHUB_ENV")
                println("::error file=$(@__FILE__),line=$(@__LINE__),title=Pkg resolve failed::Skipping tests because resolving package versions failed:\n$(err.msg)")
                println("Target configuration:\n$(ENV["MATRIX_CONTEXT"])")
-               exit(-1)
+               println("::set-output name=skiptests::true")
+               open(ENV["GITHUB_ENV"], "a") do io
+                  skipmsg = """println("Tests skipped due to resolver failure.");"""
+                  println(io, "oscar_run_tests=$skipmsg")
+                  println(io, "oscar_run_doctests=$skipmsg")
+               end
+               # exit early to avoid overriding skip-command from github_env_runtests
+               exit(0)
             else
                rethrow()
             end
          end
       end
    end
-   @info "Please start julia with:\njulia --project=$(abspath(joinpath(dir,"project")))"
+   if haskey(ENV,"MATRIX_CONTEXT")
+      println("::set-output name=skiptests::false")
+   else
+      @info "Please start julia with:\njulia --project=$(abspath(joinpath(dir,"project")))"
+   end
 end
 
 oscar_develop(pkgs::Array{String}; kwargs...) = 

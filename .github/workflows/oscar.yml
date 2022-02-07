@@ -80,7 +80,6 @@ jobs:
                                         Pkg.instantiate();"
       - name: "Set up Oscar-dev configuration"
         id: setupdev
-        continue-on-error: true
         env:
           MATRIX_CONTEXT: ${{ toJSON(matrix) }}
         run: |
@@ -98,12 +97,12 @@ jobs:
                                            filename=\"${GITHUB_ENV}\");"
 
       - name: "Run tests"
-        if: steps.setupdev.outcome == 'success'
+        if: steps.setupdev.outputs.skiptests != 'true'
         run: |
           echo '${{ env.oscar_run_tests }}'
           julia --project=oscar-dev/project/ -e '${{ env.oscar_run_tests }}'
       - name: "Run doctests"
-        if: steps.setupdev.outcome == 'success' && (matrix.julia-version == '~1.6.0-0' || matrix.julia-version == '1.6')
+        if: steps.setupdev.outputs.skiptests != 'true' && (matrix.julia-version == '~1.6.0-0' || matrix.julia-version == '1.6')
         run: |
           echo '${{ env.oscar_run_doctests }}'
           julia --project=oscar-dev/project/ -e '${{ env.oscar_run_doctests }}'
