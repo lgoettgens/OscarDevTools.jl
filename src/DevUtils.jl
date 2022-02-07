@@ -243,8 +243,7 @@ function oscar_develop(pkgs::Dict{String,Any}; dir=default_dev_dir, branch::Abst
             end
          catch err
             if err isa Pkg.Resolve.ResolverError
-               println("::error file=$(@__FILE__),line=$(@__LINE__),title=Pkg resolve failed::Resolving package versions failed, skipping tests, see below for details.")
-               println(string(err))
+               println("::error file=$(@__FILE__),line=$(@__LINE__),title=Pkg resolve failed::Skipping tests because resolving package versions failed:\n$(err.msg)")
                println("Target configuration:\n$(ENV["MATRIX_CONTEXT"])")
                exit(-1)
             else
