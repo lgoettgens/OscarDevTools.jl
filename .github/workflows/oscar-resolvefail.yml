@@ -96,10 +96,3 @@ jobs:
         run: |
           echo '${{ env.oscar_run_tests }}'
           julia --project=oscar-dev/project/ -e '${{ env.oscar_run_tests }}'
-      - name: "Pkg resolve failure"
-        if: steps.setupdev.outcome != 'success'
-        env:
-          MATRIX_CONTEXT: ${{ toJSON(matrix) }}
-        run: |
-          echo "::warning file=.github/actions/oscar.yml,line=1,title=Pkg resolve failed::skipped tests because Pkg resolve failed, please check the logs of the previous steps for details"
-          echo "configuration: $MATRIX_CONTEXT"
