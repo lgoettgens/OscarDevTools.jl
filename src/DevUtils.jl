@@ -207,38 +207,49 @@ function oscar_develop(pkgs::Dict{String,Any}; dir=default_dev_dir, branch::Abst
    withenv("JULIA_PKG_DEVDIR"=>"$dir") do
       Pkg.activate(joinpath(dir,"project")) do
          @info "populating development directory '$dir':"
-         devdirs = []
-         if ("Oscar"=>"release") in pkgs
-            # pin oscar first
-            Pkg.add("Oscar")
-            Pkg.pin("Oscar")
-         end
-         for (pkg, pkgbranch) in pkgs
-            if pkg === active_pkg
-               continue
-            else
-               if pkgbranch == "release"
-                  # make sure we have that package added explicitly
-                  # and first pin everything to latest compatible releases
-                  # unfortunately there is no add/pin Something@latest
-                  Pkg.add(pkg)
-                  Pkg.pin(pkg)
+         try
+            devdirs = []
+            if ("Oscar"=>"release") in pkgs
+               # pin oscar first
+               Pkg.add("Oscar")
+               Pkg.pin("Oscar")
+            end
+            for (pkg, pkgbranch) in pkgs
+               if pkg === active_pkg
+                  continue
                else
-                  isnothing(pkgbranch) && (pkgbranch=branch)
-                  devdir = checkout_project(pkg, dir; branch=pkgbranch, fork=fork, merge=merge)
-                  push!(devdirs, devdir)
+                  if pkgbranch == "release"
+                     # make sure we have that package added explicitly
+                     # and first pin everything to latest compatible releases
+                     # unfortunately there is no add/pin Something@latest
+                     Pkg.add(pkg)
+                     Pkg.pin(pkg)
+                  else
+                     isnothing(pkgbranch) && (pkgbranch=branch)
+                     devdir = checkout_project(pkg, dir; branch=pkgbranch, fork=fork, merge=merge)
+                     push!(devdirs, devdir)
+                  end
                end
             end
-         end
-         # then add any explicitly specified branches
-         for devdir in devdirs
-            Pkg.develop(Pkg.PackageSpec(path=devdir))
-         end
-         # and finally the currently active project
-         if !isnothing(active_pkg) && !in(active_pkg, Helpers.non_jl_repo)
-            # during CI we always need to dev the active checkout
-            @info "  reusing current dir for $active_pkg"
-            Pkg.develop(Pkg.PackageSpec(path="."))
+            # then add any explicitly specified branches
+            for devdir in devdirs
+               Pkg.develop(Pkg.PackageSpec(path=devdir))
+            end
+            # and finally the currently active project
+            if !isnothing(active_pkg) && !in(active_pkg, Helpers.non_jl_repo)
+               # during CI we always need to dev the active checkout
+               @info "  reusing current dir for $active_pkg"
+               Pkg.develop(Pkg.PackageSpec(path="."))
+            end
+         catch err
+            if err isa Pkg.Resolve.ResolverError
+               println("::error file=$(@__FILE__),line=$(@__LINE__),title=Pkg resolve failed::Resolving package versions failed, skipping tests, see below for details.")
+               println(string(err))
+               println("Target configuration:\n$(ENV["MATRIX_CONTEXT"])")
+               exit(-1)
+            else
+               rethrow()
+            end
          end
       end
    end
