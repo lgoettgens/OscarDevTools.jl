@@ -208,32 +208,28 @@ function oscar_develop(pkgs::Dict{String,Any}; dir=default_dev_dir, branch::Abst
       Pkg.activate(joinpath(dir,"project")) do
          @info "populating development directory '$dir':"
          try
-            devdirs = []
-            if ("Oscar"=>"release") in pkgs
-               # pin oscar first
+            releases = keys(filter(pkg -> pkg.second == "release", pkgs))
+            if "Oscar" in releases
+               # pin oscar first to make sure to resolve for the latest release
                Pkg.add("Oscar")
                Pkg.pin("Oscar")
             end
-            for (pkg, pkgbranch) in pkgs
+            if length(releases) > 0
+               # add all other released versions
+               Pkg.add(collect(releases))
+               # pin them to avoid downgrades during `develop`
+               # -> pin currently disabled since pinning oscar should suffice for now
+               ## Pkg.pin.(releases)
+            end
+            # then add any explicitly specified branches
+            for (pkg, pkgbranch) in filter(pkg -> pkg.second != "release", pkgs)
                if pkg === active_pkg
                   continue
                else
-                  if pkgbranch == "release"
-                     # make sure we have that package added explicitly
-                     # and first pin everything to latest compatible releases
-                     # unfortunately there is no add/pin Something@latest
-                     Pkg.add(pkg)
-                     Pkg.pin(pkg)
-                  else
-                     isnothing(pkgbranch) && (pkgbranch=branch)
-                     devdir = checkout_project(pkg, dir; branch=pkgbranch, fork=fork, merge=merge)
-                     push!(devdirs, devdir)
-                  end
+                  isnothing(pkgbranch) && (pkgbranch=branch)
+                  devdir = checkout_project(pkg, dir; branch=pkgbranch, fork=fork, merge=merge)
+                  Pkg.develop(Pkg.PackageSpec(path=devdir))
                end
-            end
-            # then add any explicitly specified branches
-            for devdir in devdirs
-               Pkg.develop(Pkg.PackageSpec(path=devdir))
             end
             # and finally the currently active project
             if !isnothing(active_pkg) && !in(active_pkg, Helpers.non_jl_repo)
@@ -241,6 +237,10 @@ function oscar_develop(pkgs::Dict{String,Any}; dir=default_dev_dir, branch::Abst
                @info "  reusing current dir for $active_pkg"
                Pkg.develop(Pkg.PackageSpec(path="."))
             end
+            # unpin everything again as this folder might be used for normal development now
+            # length(releases) > 0 && Pkg.free.(releases)
+            # -> only oscar for now, see above
+            "Oscar" in releases && Pkg.free("Oscar")
          catch err
             # if we are running on github actions skip subsequent steps
             if err isa Pkg.Resolve.ResolverError && haskey(ENV,"MATRIX_CONTEXT") && haskey(ENV, "GITHUB_ENV")
