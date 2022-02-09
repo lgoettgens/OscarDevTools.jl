@@ -204,31 +204,68 @@ function oscar_develop(pkgs::Dict{String,Any}; dir=default_dev_dir, branch::Abst
    if isnothing(fork) && !isnothing(active_repo) && fork_from_repo(active_repo) != pkg_org(active_pkg)
       fork = fork_from_repo(active_repo)
    end
-   withenv("JULIA_PKG_DEVDIR"=>"$dir") do
+   withenv("JULIA_PKG_DEVDIR"=>"$dir", "JULIA_PKG_PRECOMPILE_AUTO"=>0) do
       Pkg.activate(joinpath(dir,"project")) do
          @info "populating development directory '$dir':"
-         if !isnothing(active_pkg) && !in(active_pkg, Helpers.non_jl_repo)
-            # during CI we always need to dev the active checkout
-            @info "  reusing current dir for $active_pkg"
-            Pkg.develop(Pkg.PackageSpec(path="."))
-         end
-         for (pkg, pkgbranch) in pkgs
-            if pkg === active_pkg
-               continue
-            else
-               if pkgbranch == "release"
-                  # make sure we have that package added explicitly
-                  Pkg.add(pkg)
+         try
+            releases = keys(filter(pkg -> pkg.second == "release", pkgs))
+            if "Oscar" in releases
+               # pin oscar first to make sure to resolve for the latest release
+               Pkg.add("Oscar")
+               Pkg.pin("Oscar")
+            end
+            if length(releases) > 0
+               # add all other released versions
+               Pkg.add(collect(releases))
+               # pin them to avoid downgrades during `develop`
+               # -> pin currently disabled since pinning oscar should suffice for now
+               ## Pkg.pin.(releases)
+            end
+            # then add any explicitly specified branches
+            for (pkg, pkgbranch) in filter(pkg -> pkg.second != "release", pkgs)
+               if pkg === active_pkg
+                  continue
                else
                   isnothing(pkgbranch) && (pkgbranch=branch)
                   devdir = checkout_project(pkg, dir; branch=pkgbranch, fork=fork, merge=merge)
                   Pkg.develop(Pkg.PackageSpec(path=devdir))
                end
             end
+            # and finally the currently active project
+            if !isnothing(active_pkg) && !in(active_pkg, Helpers.non_jl_repo)
+               # during CI we always need to dev the active checkout
+               @info "  reusing current dir for $active_pkg"
+               Pkg.develop(Pkg.PackageSpec(path="."))
+            end
+            # unpin everything again as this folder might be used for normal development now
+            # length(releases) > 0 && Pkg.free.(releases)
+            # -> only oscar for now, see above
+            "Oscar" in releases && Pkg.free("Oscar")
+         catch err
+            # if we are running on github actions skip subsequent steps
+            if err isa Pkg.Resolve.ResolverError && haskey(ENV,"MATRIX_CONTEXT") && haskey(ENV, "GITHUB_ENV")
+               println("::error file=$(@__FILE__),line=$(@__LINE__),title=Pkg resolve failed::Skipping tests because resolving package versions failed:\n$(err.msg)")
+               println("Target configuration:\n$(ENV["MATRIX_CONTEXT"])")
+               println("::set-output name=skiptests::true")
+               open(ENV["GITHUB_ENV"], "a") do io
+                  skipmsg = """println("Tests skipped due to resolver failure.");"""
+                  println(io, "oscar_run_tests=$skipmsg")
+                  println(io, "oscar_run_doctests=$skipmsg")
+               end
+               # exit early to avoid overriding skip-command from github_env_runtests
+               exit(0)
+            else
+               rethrow()
+            end
          end
       end
    end
-   @info "Please start julia with:\njulia --project=$(abspath(joinpath(dir,"project")))"
+   Pkg.precompile()
+   if haskey(ENV,"MATRIX_CONTEXT")
+      println("::set-output name=skiptests::false")
+   else
+      @info "Please start julia with:\njulia --project=$(abspath(joinpath(dir,"project")))"
+   end
 end
 
 oscar_develop(pkgs::Array{String}; kwargs...) = 
