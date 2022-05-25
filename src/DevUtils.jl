@@ -252,6 +252,17 @@ function oscar_develop(pkgs::Dict{String,Any}; dir=default_dev_dir, branch::Abst
                   println(io, "oscar_run_tests=$skipmsg")
                   println(io, "oscar_run_doctests=$skipmsg")
                end
+               open(ENV["GITHUB_STEP_SUMMARY"], "a") do io
+                  println(io, "### ❌ Incompatible package versions")
+                  println(io, "All tests were skipped.")
+                  println(io, "#### Possible reasons:")
+                  println(io, "- If this happens for the Oscar master branch the Project.toml might need an update to the compat entries in a matching branch.")
+                  println(io, "- For the Oscar release this might be on purpose if an incompatible version bump is involved.")
+                  println(io, "#### Pkg error:")
+                  println(io, "```\n$(err.msg)\n```")
+                  println(io, "#### Using configuration:")
+                  println(io, "```\n$(ENV["MATRIX_CONTEXT"])\n```")
+               end
                # exit early to avoid overriding skip-command from github_env_runtests
                exit(0)
             else
