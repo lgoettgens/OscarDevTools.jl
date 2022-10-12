@@ -251,8 +251,11 @@ end
 
 # this allows setting a github output variable 'matrix'
 # which we can then use as input for the matrix-strategy
-github_json(github_matrix::Dict{String,Any}) =
-   "::set-output name=matrix::" * JSON.json(github_matrix)
+function github_json(github_matrix::Dict{String,Any})
+   open(ENV["GITHUB_OUTPUT"], "a") do io
+      println(io, "matrix=" * JSON.json(github_matrix))
+   end
+end
 
 # extract some data from the matrix context of one job
 
