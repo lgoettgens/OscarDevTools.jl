@@ -297,10 +297,16 @@ function github_env_runtests(job::Dict; varname::String, filename::String)
    testcmd = ["using Pkg;"]
    for (pkg, param) in job
       if get(param, "test", false)
-         if length(get(param, "options", [])) > 0
-            push!(testcmd, """Pkg.test("$pkg"; test_args=$(string.(param["options"])));""")
+         if get(ENV, "GITHUB_REPOSITORY", "") == "oscar-system/OscarDevTools.jl" &&
+            get(ENV, "OSCARCI_DONT_SKIP", false) != "true"
+            # for oscardevtools itself we just check if the package can be loaded
+            push!(testcmd, """using $pkg;""")
          else
-            push!(testcmd, """Pkg.test("$pkg");""")
+            if length(get(param, "options", [])) > 0
+               push!(testcmd, """Pkg.test("$pkg"; test_args=$(string.(param["options"])));""")
+            else
+               push!(testcmd, """Pkg.test("$pkg");""")
+            end
          end
       end
    end
@@ -312,10 +318,16 @@ end
 function github_env_run_doctests(job::Dict; varname::String, filename::String)
    testcmd = ["using Pkg;", "Pkg.add(\"Documenter\");", "Pkg.add(\"DocumenterCitations\");", "Pkg.add(\"DocumenterMarkdown\"); using Documenter;"]
    for (pkg, param) in job
-      if pkg == "Oscar"
-         push!(testcmd, """using Oscar; DocMeta.setdocmeta!(Oscar, :DocTestSetup, :(using Oscar, Oscar.Graphs); recursive = true); doctest(Oscar);""")
-      elseif pkg != "Polymake"
-         push!(testcmd, """using $pkg; DocMeta.setdocmeta!($pkg, :DocTestSetup, :(using $pkg); recursive = true); doctest($pkg);""")
+      if get(ENV, "GITHUB_REPOSITORY", "") == "oscar-system/OscarDevTools.jl" &&
+         get(ENV, "OSCARCI_DONT_SKIP", false) != "true"
+         # for oscardevtools itself we just check if the package can be loaded
+         push!(testcmd, """using $pkg;""")
+      else
+         if pkg == "Oscar"
+            push!(testcmd, """using Oscar; DocMeta.setdocmeta!(Oscar, :DocTestSetup, :(using Oscar, Oscar.Graphs); recursive = true); doctest(Oscar);""")
+         elseif pkg != "Polymake"
+            push!(testcmd, """using $pkg; DocMeta.setdocmeta!($pkg, :DocTestSetup, :(using $pkg); recursive = true); doctest($pkg);""")
+         end
       end
    end
    open(filename, "a") do io
