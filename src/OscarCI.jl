@@ -109,8 +109,12 @@ function ci_matrix(meta::Dict{String,Any}; pr=0, fork=nothing, active_repo=nothi
       ghpr = GitHub.pull_request(github_repo(active_pkg), pr; auth=gh_auth)
       # check if this comes from a fork
       if ghpr.head.ref != "master"
+         # if this PR is from a fork use the login
          if ghpr.head.repo.full_name != pkg_url(active_pkg; full=false)
             fork = ghpr.head.user.login
+         else
+            # otherwise use the username of the creator of the PR
+            fork = ghpr.user.login
          end
          if startswith(ghpr.head.ref, "$(ghpr.user.login)-patch-")
             @warn "PR branch name $(ghpr.head.ref) ignored for branch autodetection"
