@@ -46,6 +46,7 @@ jobs:
     env:
       PR_NUMBER: ${{github.event.number}}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OSCARCI_DONT_SKIP: "true"
     strategy:
       matrix: ${{fromJSON(needs.generatematrix.outputs.matrix)}}
       fail-fast: false

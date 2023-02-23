@@ -68,6 +68,6 @@ jobs:
                    pkgs = OscarDevTools.parse_job(ENV[\"MATRIX_CONTEXT\"]);
                    oscar_develop(pkgs;
                                  dir=\"oscar-dev\");"
-      - name: "Run Oscar tests"
+      - name: "Run Oscar tests (not really ... just load Oscar)"
         run: |
-          julia --project=oscar-dev/project/ -e 'using Pkg; Pkg.test("Oscar");'
+          julia --project=oscar-dev/project/ -e 'using Oscar;'
