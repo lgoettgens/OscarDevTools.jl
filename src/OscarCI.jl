@@ -118,6 +118,7 @@ function ci_matrix(meta::Dict{String,Any}; pr=0, fork=nothing, active_repo=nothi
          end
          if startswith(ghpr.head.ref, "$(ghpr.user.login)-patch-")
             @warn "PR branch name $(ghpr.head.ref) ignored for branch autodetection"
+            global_branches[global_branches.=="<matching>"] .= "master"
          else
             pr_branch = ghpr.head.ref
             # replace '<matching>' with pr_branch
