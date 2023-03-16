@@ -126,7 +126,9 @@ function ci_matrix(meta::Dict{String,Any}; pr=0, fork=nothing, active_repo=nothi
          end
          if startswith(ghpr.head.ref, "$(ghpr.user.login)-patch-")
             @warn "PR branch name $(ghpr.head.ref) ignored for branch autodetection"
-            global_branches[global_branches.=="<matching>"] .= "master"
+            if !("master" in global_branches)
+               global_branches[global_branches.=="<matching>"] .= "master"
+            end
          else
             pr_branch = ghpr.head.ref
             # replace '<matching>' with pr_branch
@@ -138,8 +140,10 @@ function ci_matrix(meta::Dict{String,Any}; pr=0, fork=nothing, active_repo=nothi
       # TODO: we might even look into pr.body and parse the branch from there?
       # e.g.: look for such a line
       # SomePkg.jl: otherUser/SomePkg.jl#branchname
+   elseif !("master" in global_branches)
+      global_branches[global_branches.=="<matching>"] .= "master"
    end
-   
+
    global_axis_pkgs = []
 
    # for each package lookup branch with the same name in fork and main repo
