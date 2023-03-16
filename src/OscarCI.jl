@@ -93,6 +93,14 @@ end
 function ci_matrix(meta::Dict{String,Any}; pr=0, fork=nothing, active_repo=nothing)
    isnothing(gh_auth) && github_auth()
 
+   if pr == ""
+      pr = 0
+   elseif pr isa AbstractString
+      pr = parse(Int, pr)
+   elseif isnothing(pr)
+      pr = 0
+   end
+
    matrix = Dict{String,Any}(meta["env"])
    active_pkg = pkg_from_repo(active_repo)
 
@@ -118,6 +126,7 @@ function ci_matrix(meta::Dict{String,Any}; pr=0, fork=nothing, active_repo=nothi
          end
          if startswith(ghpr.head.ref, "$(ghpr.user.login)-patch-")
             @warn "PR branch name $(ghpr.head.ref) ignored for branch autodetection"
+            global_branches[global_branches.=="<matching>"] .= "master"
          else
             pr_branch = ghpr.head.ref
             # replace '<matching>' with pr_branch

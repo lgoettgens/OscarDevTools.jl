@@ -32,7 +32,7 @@ jobs:
                  using OscarDevTools.OscarCI;
                  ciprefs = parse_meta(\"test/meta/OscarCI-merge.toml\");
                  cimat = ci_matrix(ciprefs;
-                                   pr=${PR_NUMBER},
+                                   pr=\"${PR_NUMBER}\",
                                    active_repo=\"${GITHUB_REPOSITORY}\");
                  @show cimat;
                  println(github_json(cimat));"
