@@ -26,7 +26,7 @@ jobs:
     - name: "Set up Julia"
       uses: julia-actions/setup-julia@v1
       with:
-        version: '~1.8.0-0'
+        version: '~1.6.0-0'
     - id: set-matrix
       run: |
         julia --project=. -e "using Pkg; Pkg.instantiate();
