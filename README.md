@@ -45,7 +45,7 @@ title = "metadata for oscar CI run"
 # keep it small to prevent job-explosion
 [env]
 os = [ "ubuntu-latest" ]
-julia-version = [ "~1.6.0-0" ]
+julia-version = [ "~1.8.0-0" ]
 
 # packages not listed here will use the latest release
 [pkgs]
@@ -63,7 +63,7 @@ julia-version = [ "~1.6.0-0" ]
   Oscar = "master"
   Hecke = "master"
   os = "macos-latest"
-  julia-version = "~1.6.0-0"
+  julia-version = "~1.8.0-0"
 
   [include.julia]
   Oscar = "master"
@@ -75,7 +75,7 @@ julia-version = [ "~1.6.0-0" ]
   Oscar = "master"
   Singular = "master"
   os = "ubuntu-latest"
-  julia-version = "~1.6.0-0"
+  julia-version = "~1.8.0-0"
 ```
 
 This will test the currently active project (which might be `Nemo.jl` for example) in combination with `master`, latest release and (if it exists) the matching branch from the PR for both Oscar and Hecke. Tests will also run for `Hecke.jl` but with `test_args=["short"]`.

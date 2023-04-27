@@ -18,7 +18,7 @@ export github_auth, github_repo, github_repo_exists, find_branch,
 ### defaults for julia-version, os and branches
 
 const default_os = [ "ubuntu-latest" ]
-const default_julia = [ "~1.6.0-0" ]
+const default_julia = [ "~1.8.0-0" ]
 const default_branches = [ "<matching>", "release" ]
 
 ### end defaults
