@@ -14,15 +14,7 @@ export github_auth, github_repo, github_repo_exists, find_branch,
        parse_job, job_meta_env, job_pkgs, github_env_runtests,
        github_env_run_doctests
 
-######
-### defaults for julia-version, os and branches
-
-const default_os = [ "ubuntu-latest" ]
-const default_julia = [ "~1.8.0-0" ]
-const default_branches = [ "<matching>", "release" ]
-
-### end defaults
-######
+include("defaults.jl")
 
 global gh_auth = nothing
 
@@ -329,17 +321,22 @@ function github_env_runtests(job::Dict; varname::String, filename::String)
 end
 
 function github_env_run_doctests(job::Dict; varname::String, filename::String)
-   testcmd = ["using Pkg;", "Pkg.add(\"Documenter\");", "Pkg.add(\"DocumenterCitations\");", "Pkg.add(\"DocumenterMarkdown\"); using Documenter;"]
+   testcmd = [
+              "using Pkg;",
+              "Pkg.add(\"Documenter\");",
+              "Pkg.add(\"DocumenterCitations\");",
+              "Pkg.add(\"DocumenterMarkdown\");",
+              "using Documenter;",
+              "include(\"src/doctest_helper.jl\");"
+             ]
    for (pkg, param) in job
       if get(ENV, "GITHUB_REPOSITORY", "") == "oscar-system/OscarDevTools.jl" &&
          get(ENV, "OSCARCI_DONT_SKIP", false) != "true"
          # for oscardevtools itself we just check if the package can be loaded
          push!(testcmd, """using $pkg;""")
       else
-         if pkg == "Oscar"
-            push!(testcmd, """using Oscar; DocMeta.setdocmeta!(Oscar, :DocTestSetup, :(using Oscar, Oscar.Graphs); recursive = true); doctest(Oscar);""")
-         elseif pkg != "Polymake"
-            push!(testcmd, """using $pkg; DocMeta.setdocmeta!($pkg, :DocTestSetup, :(using $pkg); recursive = true); doctest($pkg);""")
+         if pkg != "Polymake"
+            push!(testcmd, """using $pkg; @maybe_doctest($pkg);""")
          end
       end
    end
