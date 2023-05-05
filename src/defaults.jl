@@ -15,7 +15,7 @@ const doctest_versions = Dict(
     :Hecke           => [v"0.16.7"     => (v"1.8", v"1.9" )],
     :AbstractAlgebra => [v"0.29.5"     => (v"1.8", v"1.9" )],
     :Nemo            => [v"0.33.8"     => (v"1.8", v"1.9" )],
-    :Singular        => [],
+    :Singular        => [v"0.18.3"     => (v"1.8", v"1.9" )],
   )
 
 ### end defaults
