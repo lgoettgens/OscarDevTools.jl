@@ -1,4 +1,4 @@
-name: OscarCI
+name: OscarCI-doctest
 
 on:
   pull_request:
@@ -45,7 +45,7 @@ jobs:
     - id: set-matrix
       run: |
         julia --project=oscar-dev -e "using OscarDevTools.OscarCI;
-                 ciprefs = parse_meta(\"OscarCI.toml\");
+                 ciprefs = parse_meta(\"test/meta/OscarCI-doctest.toml\");
                  cimat = ci_matrix(ciprefs;
                                    pr=${PR_NUMBER},
                                    active_repo=\"${GITHUB_REPOSITORY}\");
@@ -60,6 +60,7 @@ jobs:
     env:
       PR_NUMBER: ${{github.event.number}}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OSCARCI_DONT_SKIP: "true"
     strategy:
       matrix: ${{fromJSON(needs.generatematrix.outputs.matrix)}}
       fail-fast: false
@@ -100,11 +101,6 @@ jobs:
                                            varname=\"oscar_run_doctests\",
                                            filename=\"${GITHUB_ENV}\");"
 
-      - name: "Run tests"
-        if: steps.setupdev.outputs.skiptests != 'true'
-        run: |
-          echo '${{ env.oscar_run_tests }}'
-          julia --project=oscar-dev/project/ -e '${{ env.oscar_run_tests }}'
       - name: "Run doctests"
         if: steps.setupdev.outputs.skiptests != 'true'
         run: |
