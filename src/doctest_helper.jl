@@ -20,9 +20,17 @@ function allow_doctests(pkg::Symbol, julia_version=VERSION)
    return v"1.6" <= julia_version < v"1.7"
 end
 
+function doctest_cmd(pkg::Symbol)
+   mod = getproperty(@__MODULE__, pkg)
+   setup = QuoteNode(isdefined(mod, :doctestsetup) ? mod.doctestsetup() : :(using $(pkg)))
+   return quote
+             DocMeta.setdocmeta!($pkg, :DocTestSetup, $setup; recursive = true); doctest($pkg)
+          end
+end
+
 macro maybe_doctest(pkg::Symbol)
    if allow_doctests(pkg)
-      return :(DocMeta.setdocmeta!($pkg, :DocTestSetup, :(using $($pkg)); recursive = true); doctest($pkg))
+      return doctest_cmd(pkg)
    else
       msg = "Skipping doctest for $pkg due to julia version ($VERSION) mismatch."
       if haskey(ENV, "GITHUB_STEP_SUMMARY")
