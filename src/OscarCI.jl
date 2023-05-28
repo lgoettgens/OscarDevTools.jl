@@ -327,7 +327,7 @@ function github_env_run_doctests(job::Dict; varname::String, filename::String)
               "Pkg.add(\"DocumenterCitations\");",
               "Pkg.add(\"DocumenterMarkdown\");",
               "using Documenter;",
-              "include(\"src/doctest_helper.jl\");"
+              "include(\"$(@__DIR__)/doctest_helper.jl\");"
              ]
    for (pkg, param) in job
       if get(ENV, "GITHUB_REPOSITORY", "") == "oscar-system/OscarDevTools.jl" &&
