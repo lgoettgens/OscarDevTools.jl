@@ -221,22 +221,25 @@ function oscar_develop(pkgs::Dict{String,Any}; dir=default_dev_dir, branch::Abst
                # -> pin currently disabled since pinning oscar should suffice for now
                ## Pkg.pin.(releases)
             end
-            # then add any explicitly specified branches
+            # then the currently active project
+            pkgspecs = Pkg.Types.PackageSpec[]
+            if !isnothing(active_pkg) && !in(active_pkg, Helpers.non_jl_repo)
+               # during CI we always need to dev the active checkout
+               @info "  reusing current dir for $active_pkg"
+               push!(pkgspecs, Pkg.PackageSpec(path="."))
+            end
+            # finally add any explicitly specified branches
+            # (these should be downstream of the active package)
             for (pkg, pkgbranch) in filter(pkg -> pkg.second != "release", pkgs)
-               if pkg === active_pkg
+               if pkg == active_pkg
                   continue
                else
                   isnothing(pkgbranch) && (pkgbranch=branch)
                   devdir = checkout_project(pkg, dir; branch=pkgbranch, fork=fork, merge=merge)
-                  Pkg.develop(Pkg.PackageSpec(path=devdir))
+                  push!(pkgspecs, Pkg.PackageSpec(path=devdir))
                end
             end
-            # and finally the currently active project
-            if !isnothing(active_pkg) && !in(active_pkg, Helpers.non_jl_repo)
-               # during CI we always need to dev the active checkout
-               @info "  reusing current dir for $active_pkg"
-               Pkg.develop(Pkg.PackageSpec(path="."))
-            end
+            length(pkgspecs) > 0 && Pkg.develop(pkgspecs)
             # unpin everything again as this folder might be used for normal development now
             # length(releases) > 0 && Pkg.free.(releases)
             # -> only oscar for now, see above
