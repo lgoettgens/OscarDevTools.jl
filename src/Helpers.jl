@@ -46,11 +46,10 @@ function pkg_parsebranch(pkg::AbstractString, branch::AbstractString)
       end
       branch = urlmatch[2]
    end
-   if isnothing(fork)
-      return (nothing, branch, "$pkg#$branch")
-   else
-      return (fork, branch, "$pkg@$fork#$branch")
-   end
+   name = pkg
+   isnothing(fork) || (name *= "@$fork")
+   branch == "" || (name *= "#$branch")
+   return (fork, branch, name)
 end
 
 end

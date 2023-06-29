@@ -153,17 +153,24 @@ function ci_matrix(meta::Dict{String,Any}; pr=0, fork=nothing, active_repo=nothi
       totest = get!(pkgmeta, "test", false)
       testopts = get!(pkgmeta, "testoptions", [])
 
-      # ignore currently active repo
-      pkg == active_pkg && continue
-
-      # add pkgs without 'branches' entry to the global pkg list
-      # and dont create a separate axis
-      if !haskey(pkgmeta,"branches")
-         push!(global_axis_pkgs,pkg)
-         continue
+      # don't ignore currently active repo
+      # it might be needed to do some extra tests together with oscar
+      # (e.g. for Polymake)
+      branches = if pkg == active_pkg
+         if totest == true
+            [""]
+         else
+            continue
+         end
+      else
+         # add pkgs without 'branches' entry to the global pkg list
+         # and dont create a separate axis
+         if !haskey(pkgmeta,"branches")
+            push!(global_axis_pkgs,pkg)
+            continue
+         end
+         pkgmeta["branches"]
       end
-
-      branches = pkgmeta["branches"]
 
       if !isempty(pr_branch) && "<matching>" in branches
          (url, branch, pkg_fork) = find_branch(pkg, pr_branch; fork=fork)
