@@ -11,7 +11,7 @@ const default_branches = [ "<matching>", "release" ]
 # newest entries should come first
 # if no matching version is found the doctests will run with julia 1.6
 const doctest_versions = Dict(
-    :Oscar           => [v"0.14.0-DEV" => (v"1.10", v"1.13"),
+    :Oscar           => [v"0.14.0-DEV" => (v"1.10", v"1.12"),
                          v"0.13.0-DEV" => (v"1.9" , v"1.11"),
                          v"0.12.1-DEV" => (v"1.8" , v"1.11")],
     :Hecke           => [v"0.24.1"     => (v"1.10", v"1.11"),
