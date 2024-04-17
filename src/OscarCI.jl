@@ -317,8 +317,11 @@ function github_env_runtests(job::Dict; varname::String, filename::String)
             if length(get(param, "options", [])) > 0
                push!(testcmd, """Pkg.test("$pkg"; test_args=$(string.(param["options"])));""")
             elseif pkg == "Oscar"
-               for group in ["short", "book", "long"]
+               for group in ["short", "long"]
                   push!(testcmd, """withenv("OSCAR_TEST_SUBSET"=>"$group") do; Pkg.test("$pkg"); end;""")
+               end
+               if Sys.islinux() && v"1.10" <= VERSION < v"1.11.0-DEV"
+                  push!(testcmd, """withenv("OSCAR_TEST_SUBSET"=>"book") do; Pkg.test("$pkg"); end;""")
                end
             else
                push!(testcmd, """Pkg.test("$pkg");""")
