@@ -339,7 +339,6 @@ function github_env_run_doctests(job::Dict; varname::String, filename::String)
               "using Pkg;",
               "Pkg.add(\"Documenter\");",
               "Pkg.add(\"DocumenterCitations\");",
-              "Pkg.add(\"DocumenterMarkdown\");",
               "using Documenter;",
               "include(\"$(@__DIR__)/doctest_helper.jl\");"
              ]
