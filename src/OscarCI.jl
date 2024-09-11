@@ -343,13 +343,15 @@ function github_env_run_doctests(job::Dict; varname::String, filename::String)
               "include(\"$(@__DIR__)/doctest_helper.jl\");"
              ]
    for (pkg, param) in job
-      if get(ENV, "GITHUB_REPOSITORY", "") == "oscar-system/OscarDevTools.jl" &&
-         get(ENV, "OSCARCI_DONT_SKIP", false) != "true"
-         # for oscardevtools itself we just check if the package can be loaded
-         push!(testcmd, """using $pkg;""")
-      else
-         if pkg != "Polymake"
-            push!(testcmd, """using $pkg; @maybe_doctest($pkg);""")
+      if get(param, "test", false)
+         if get(ENV, "GITHUB_REPOSITORY", "") == "oscar-system/OscarDevTools.jl" &&
+            get(ENV, "OSCARCI_DONT_SKIP", false) != "true"
+            # for oscardevtools itself we just check if the package can be loaded
+            push!(testcmd, """using $pkg;""")
+         else
+            if pkg != "Polymake"
+               push!(testcmd, """using $pkg; @maybe_doctest($pkg);""")
+            end
          end
       end
    end
