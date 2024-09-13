@@ -44,4 +44,13 @@ macro maybe_doctest(pkg::Symbol)
    end
 end
 
-
+# we include this even when oscar is not tested to add some debug output for
+# printing the doctests and to allow testing of experimental oscar projects
+# (via documenter - walkdir hack)
+oscdep = filter(x -> x.name == "Oscar", collect(values(Pkg.dependencies())))
+if !isempty(oscdep)
+   doc_helpers = joinpath(first(oscdep).source, "docs", "documenter_helpers.jl")
+   if isfile(doc_helpers)
+      include(doc_helpers)
+   end
+end
