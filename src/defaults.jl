@@ -1,9 +1,7 @@
 ######
 ### defaults for julia-version, os and branches
 
-# we stick with ubuntu 22 until we can remove julia 1.6 due to GLIBCXX errors
-# from polymake wrappers
-const default_os = [ "ubuntu-22.04" ]
+const default_os = [ "ubuntu-latest" ]
 const default_julia = [ "~1.6.0-0", "~1.10.0-0" ]
 const default_branches = [ "<matching>", "release" ]
 
